@@ -231,3 +231,24 @@ and ./RUN
 ln -fs (pwd)/static/cec_transformations build/tests/input_data
 ./RUN
 ```
+
+
+
+
+==============================================================================================================
+# Über submodulare Probleme
+
+Die MaxCoverage-Klasse erbt von der Problem-Klasse, welche ein constraints_ Objekt hat. Da drin können mehrere Constraint-Objekte untergebracht werden. Ein Constraint-Objekt kann unter anderem ein GraphConstraint-Objekt sein. Ein GraphConstraint-Objekt besteht aus Knoten und Kanten. Man kann ein GraphConstraint-Objekt evaluieren, indem man erst die GraphConstraint::compute_violation Methode aufruft und dann im Attribut violation_ nachschaut. Wenn man aufruft, bekommt einen bool-Wert, ob die gegebene Teilmenge bezüglich der Kosten ein Budget nicht überschreitet. Den Kostenwert selbst kriegt man, wenn man im violation_ Attribut nachschaut. Da drin nachschauen über Python geht, indem man sagt:
+```
+f.constraints[0].violation
+```
+
+Und aufrufen kann man:
+```
+X = [0, 0, 1]
+f.constraints[0].compute_violation(X)
+```
+
+Beachte, dass wir das erste Element aus dem Constraints-Objekt herausnehmen, welches einer Liste ähnelt. Das erste Element ist das einzige Constraint, welches in dem Optimierungsproblem enthalten ist. Dieses einzige Constraint ist ein GraphConstraint.
+==============================================================================================================
+
