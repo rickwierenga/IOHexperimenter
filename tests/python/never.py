@@ -8,7 +8,8 @@ import variables_info
 nevergrad_optimizers = [
     # 'SADiscreteLenglerOnePlusOneExp09',
     # 'OnePlusOne',
-    'DiscreteLenglerHalfOnePlusOne',
+    'RLSOnePlusOne',
+    # 'DiscreteLenglerHalfOnePlusOne',
     # 'SADiscreteLenglerOnePlusOneLin100',
     # 'Carola3',
     # 'DiscreteDoerrOnePlusOne',
@@ -54,21 +55,22 @@ for function_id in range(2000, 2400):
 #   example_graphs/example_graph0_c_linear
 
 submodular_function_ids = [2124]
+submodular_function_ids = [2120]
 variables_info.d(submodular_function_ids)
 
 for nevergrad_optimizer in nevergrad_optimizers:
     ioh_experiment = ioh.Experiment(
         algorithm = NevergradOptimizer(nevergrad_optimizer),
         fids = submodular_function_ids,
-        iids = [1],
-        dims = [1],
-        reps = 1,
+        iids = [1] * len(submodular_function_ids),
+        dims = [1] * len(submodular_function_ids),
         problem_class = ioh.ProblemClass.GRAPH,
-        njobs = 1,
-        output_directory = 'ioh_experiments',
-        logged = True,
         folder_name = nevergrad_optimizer,
         algorithm_name = nevergrad_optimizer,
+        output_directory = 'ioh_experiments',
+        reps = 1,
+        njobs = 1,
+        logged = True,
         store_positions = False,
         merge_output = True,
         zip_output = True,
