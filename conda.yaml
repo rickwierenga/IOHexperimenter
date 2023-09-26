@@ -4,12 +4,20 @@ dependencies:
   - python=3.9
   - pip
   - pip:
+    - .
+    - breathe
     - cmake
     - colored
+    - furo
     - jupyter
+    - m2r2
     - mypy
     - ninja
+    - Pillow
     - pybind11
     - setuptools
+    - sphinx
+    - sphinx-automodapi
     - wheel
     - xmltodict
+    - opencv-python
