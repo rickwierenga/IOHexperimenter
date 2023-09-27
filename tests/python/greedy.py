@@ -9,7 +9,6 @@ def generalized_greedy_algorithm(func):
   V_strich = list(range(num_dimensions))
   groesser = func.constraints[0].compute_violation
   c_dach_wert = func.constraints[0].violation
-  print(len(V_strich))
   while V_strich:
 
     v_stern = None
@@ -33,7 +32,6 @@ def generalized_greedy_algorithm(func):
         v_stern = v
 
     V_strich.remove(v_stern)
-    print(len(V_strich))
 
     X_mit_v_stern = list(X)
     X_mit_v_stern[v_stern] = 1
@@ -64,20 +62,21 @@ def generalized_greedy_algorithm(func):
 
 # ================================================================================================
 
-# [2000, 2001, 2002, 2003, 2004, 2100, 2101, 2102, 2103, 2104, 2105, 2106, 2107, 2108, 2109, 2110, 2111, 2112, 2113, 2114, 2115, 2116, 2117, 2118, 2119, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2127, 2200, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308]
-# It could last a number of seconds to run the generalized greedy algorithm
-# on each of these instances of submodular problems.
+if __name__ == '__main__':
+  # [2000, 2001, 2002, 2003, 2004, 2100, 2101, 2102, 2103, 2104, 2105, 2106, 2107, 2108, 2109, 2110, 2111, 2112, 2113, 2114, 2115, 2116, 2117, 2118, 2119, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2127, 2200, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308]
+  # It could last a number of seconds to run the generalized greedy algorithm
+  # on each of these instances of submodular problems.
 
-f = get_problem(2124, 1, 0, ProblemClass.GRAPH)
-f = get_problem(2103, 1, 0, ProblemClass.GRAPH)
-f = get_problem(2219, 1, 0, ProblemClass.GRAPH)
+  f = get_problem(2124, 1, 0, ProblemClass.GRAPH)
+  f = get_problem(2103, 1, 0, ProblemClass.GRAPH)
+  f = get_problem(2219, 1, 0, ProblemClass.GRAPH)
 
-# f
-# f.constraints[0].compute_violation
-# f.constraints[0].violation
+  # f
+  # f.constraints[0].compute_violation
+  # f.constraints[0].violation
 
-g = generalized_greedy_algorithm(f)
-teilmenge_knoten = [index for index, value in enumerate(g) if value]
-variables_info.d(g)
-variables_info.d(f(g))
-variables_info.d(teilmenge_knoten)
+  g = generalized_greedy_algorithm(f)
+  teilmenge_knoten = [index for index, value in enumerate(g) if value]
+  variables_info.d(g)
+  variables_info.d(f(g))
+  variables_info.d(teilmenge_knoten)
