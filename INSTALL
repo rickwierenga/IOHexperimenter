@@ -1,6 +1,11 @@
 #!/usr/bin/env fish
 
 true
+
+# and git submodule
+# and git submodule init
+# and git submodule update
+
 and conda activate base
 and rm -rf ./.conda_environment
 and conda env create --prefix ./.conda_environment --file conda.yaml
