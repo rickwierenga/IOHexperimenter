@@ -9,15 +9,22 @@ dependencies:
     - cmake
     - colored
     - furo
+    - gym
     - jupyter
     - m2r2
+    - matplotlib
     - mypy
+    - nevergrad
     - ninja
+    - opencv-python
     - Pillow
     - pybind11
+    - pyproj
     - setuptools
     - sphinx
     - sphinx-automodapi
+    - torch
+    - torchvision
+    - variables-info
     - wheel
     - xmltodict
-    - opencv-python
