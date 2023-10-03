@@ -252,3 +252,12 @@ f.constraints[0].compute_violation(X)
 Beachte, dass wir das erste Element aus dem Constraints-Objekt herausnehmen, welches einer Liste ähnelt. Das erste Element ist das einzige Constraint, welches in dem Optimierungsproblem enthalten ist. Dieses einzige Constraint ist ein GraphConstraint.
 ==============================================================================================================
 
+```sh
+You can write a Python script. This script will receive a run ID as an input from the command line argument. The Python script might choose to behave differently depending on the run ID.
+
+You can write a shell script. The shell script specifies how the PBS process will be created and which run IDs the Python script should be used with to create Python processes. The PBS process will create a Python process using a Python script and a run ID number. Then, there will be one Python process created for each run ID. Each run ID will be specified in the shell script.
+
+There might 100 run IDs.
+
+PBS will launch the jobs. Each Python process is called a "job". You can list the jobs by saying 'qstat'.
+```
