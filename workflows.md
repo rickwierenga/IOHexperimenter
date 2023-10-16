@@ -232,32 +232,194 @@ ln -fs (pwd)/static/cec_transformations build/tests/input_data
 ./RUN
 ```
 
-
-
-
-==============================================================================================================
-# Über submodulare Probleme
-
-Die MaxCoverage-Klasse erbt von der Problem-Klasse, welche ein constraints_ Objekt hat. Da drin können mehrere Constraint-Objekte untergebracht werden. Ein Constraint-Objekt kann unter anderem ein GraphConstraint-Objekt sein. Ein GraphConstraint-Objekt besteht aus Knoten und Kanten. Man kann ein GraphConstraint-Objekt evaluieren, indem man erst die GraphConstraint::compute_violation Methode aufruft und dann im Attribut violation_ nachschaut. Wenn man aufruft, bekommt einen bool-Wert, ob die gegebene Teilmenge bezüglich der Kosten ein Budget nicht überschreitet. Den Kostenwert selbst kriegt man, wenn man im violation_ Attribut nachschaut. Da drin nachschauen über Python geht, indem man sagt:
-```
-f.constraints[0].violation
-```
-
-Und aufrufen kann man:
-```
-X = [0, 0, 1]
-f.constraints[0].compute_violation(X)
-```
-
-Beachte, dass wir das erste Element aus dem Constraints-Objekt herausnehmen, welches einer Liste ähnelt. Das erste Element ist das einzige Constraint, welches in dem Optimierungsproblem enthalten ist. Dieses einzige Constraint ist ein GraphConstraint.
-==============================================================================================================
-
+Compilers
 ```sh
-You can write a Python script. This script will receive a run ID as an input from the command line argument. The Python script might choose to behave differently depending on the run ID.
+sudo apt install gcc
+sudo apt install gcc-13
 
-You can write a shell script. The shell script specifies how the PBS process will be created and which run IDs the Python script should be used with to create Python processes. The PBS process will create a Python process using a Python script and a run ID number. Then, there will be one Python process created for each run ID. Each run ID will be specified in the shell script.
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 60 --slave /usr/bin/g++ g++ /usr/bin/g++-13
+sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 60
+```
 
-There might 100 run IDs.
-
-PBS will launch the jobs. Each Python process is called a "job". You can list the jobs by saying 'qstat'.
+Compilation process:
+```sh
+dimitri@habimm ~/c/I/build (dynamic-bin-val)> sudo make install
+[sudo] password for dimitri:
+[  2%] Built target fmt
+[  3%] Built target gtest
+[ 27%] Built target test_ioh
+[ 29%] Built target test_common
+[ 32%] Built target test_examples
+[ 36%] Built target test_samplers
+[ 38%] Built target test_experiment
+[ 40%] Built target test_analyzer
+[ 42%] Built target test_eaf
+[ 44%] Built target test_eah-distrib
+[ 47%] Built target test_eah-scales
+[ 50%] Built target test_eah-stats
+[ 53%] Built target test_eah
+[ 56%] Built target test_flatfile
+[ 58%] Built target test_properties
+[ 60%] Built target test_store
+[ 63%] Built target test_triggers
+[ 67%] Built target test_bbob_affine
+[ 69%] Built target test_bbob_problem
+[ 72%] Built target test_bbob_sbox
+[ 75%] Built target test_constraints
+[ 77%] Built target test_multiobjective
+[ 80%] Built target test_pbo_problem
+[ 82%] Built target test_star_discrepancy_integer
+[ 86%] Built target test_star_discrepancy_real
+[ 89%] Built target test_submodular
+[ 91%] Built target test_wmodel_problem
+[ 94%] Built target test_wrap_problem
+[ 96%] Built target test_suite
+[ 98%] Built target example_ioh
+[100%] Built target eafh
+Install the project...
+-- Install configuration: ""
+-- Installing: /usr/local/lib/libfmt.a
+-- Installing: /usr/local/include/fmt/args.h
+-- Installing: /usr/local/include/fmt/chrono.h
+-- Installing: /usr/local/include/fmt/color.h
+-- Installing: /usr/local/include/fmt/compile.h
+-- Installing: /usr/local/include/fmt/core.h
+-- Installing: /usr/local/include/fmt/format.h
+-- Installing: /usr/local/include/fmt/format-inl.h
+-- Installing: /usr/local/include/fmt/os.h
+-- Installing: /usr/local/include/fmt/ostream.h
+-- Installing: /usr/local/include/fmt/printf.h
+-- Installing: /usr/local/include/fmt/ranges.h
+-- Installing: /usr/local/include/fmt/std.h
+-- Installing: /usr/local/include/fmt/xchar.h
+-- Installing: /usr/local/lib/cmake/fmt/fmt-config.cmake
+-- Installing: /usr/local/lib/cmake/fmt/fmt-config-version.cmake
+-- Installing: /usr/local/lib/cmake/fmt/fmt-targets.cmake
+-- Installing: /usr/local/lib/cmake/fmt/fmt-targets-noconfig.cmake
+-- Installing: /usr/local/lib/pkgconfig/fmt.pc
+-- Up-to-date: /usr/local/include
+-- Up-to-date: /usr/local/include/ioh
+-- Installing: /usr/local/include/ioh/common.hpp
+-- Up-to-date: /usr/local/include/ioh/problem
+-- Up-to-date: /usr/local/include/ioh/problem/star_discrepancy
+-- Installing: /usr/local/include/ioh/problem/star_discrepancy/common.hpp
+-- Installing: /usr/local/include/ioh/problem/star_discrepancy/integer.hpp
+-- Installing: /usr/local/include/ioh/problem/star_discrepancy/real.hpp
+-- Installing: /usr/local/include/ioh/problem/dynamic_bin_val.hpp
+-- Installing: /usr/local/include/ioh/problem/constraints.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob.hpp
+-- Up-to-date: /usr/local/include/ioh/problem/pbo
+-- Installing: /usr/local/include/ioh/problem/pbo/linear.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/ising_torus.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/leading_ones_neutrality.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/ising_ring.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/one_max_epistasis.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/leading_ones_epistasis.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/labs.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/n_queens.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/one_max.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/pbo_problem.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/leading_ones_dummy2.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/one_max_ruggedness1.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/one_max_dummy1.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/concatenated_trap.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/mis.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/leading_ones.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/nk_landscapes.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/one_max_dummy2.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/leading_ones_dummy1.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/leading_ones_ruggedness2.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/leading_ones_ruggedness1.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/one_max_ruggedness2.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/one_max_ruggedness3.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/one_max_neutrality.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/leading_ones_ruggedness3.hpp
+-- Installing: /usr/local/include/ioh/problem/pbo/ising_triangular.hpp
+-- Up-to-date: /usr/local/include/ioh/problem/wmodel
+-- Installing: /usr/local/include/ioh/problem/wmodel/wmodel_one_max.hpp
+-- Installing: /usr/local/include/ioh/problem/wmodel/wmodel_problem.hpp
+-- Installing: /usr/local/include/ioh/problem/wmodel/wmodel_leading_ones.hpp
+-- Installing: /usr/local/include/ioh/problem/wmodel/README.md
+-- Installing: /usr/local/include/ioh/problem/dynamic_bin_val
+-- Installing: /usr/local/include/ioh/problem/dynamic_bin_val/dynamic_bin_val.hpp
+-- Installing: /usr/local/include/ioh/problem/wrap_function.hpp
+-- Installing: /usr/local/include/ioh/problem/problem.hpp
+-- Up-to-date: /usr/local/include/ioh/problem/mklandscape
+-- Installing: /usr/local/include/ioh/problem/mklandscape/README.md
+-- Installing: /usr/local/include/ioh/problem/mklandscape/cliqueTreeC.hpp
+-- Installing: /usr/local/include/ioh/problem/single.hpp
+-- Installing: /usr/local/include/ioh/problem/structures.hpp
+-- Installing: /usr/local/include/ioh/problem/.gitignore
+-- Installing: /usr/local/include/ioh/problem/transformation.hpp
+-- Up-to-date: /usr/local/include/ioh/problem/bbob
+-- Installing: /usr/local/include/ioh/problem/bbob/griewank_rosenbrock.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/weierstrass.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/step_ellipsoid.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/bbob_problem.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/bueche_rastrigin.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/many_affine.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/schaffers10.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/gallagher101.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/rosenbrock.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/ellipsoid_rotated.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/gallagher21.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/rastrigin_rotated.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/lunacek_bi_rastrigin.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/attractive_sector.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/bent_cigar.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/sharp_ridge.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/linear_slope.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/sphere.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/ellipsoid.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/rastrigin.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/katsuura.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/discus.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/rosenbrock_rotated.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/different_powers.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/schaffers1000.hpp
+-- Installing: /usr/local/include/ioh/problem/bbob/schwefel.hpp
+-- Up-to-date: /usr/local/include/ioh/problem/submodular
+-- Installing: /usr/local/include/ioh/problem/submodular/pack_while_travel.hpp
+-- Installing: /usr/local/include/ioh/problem/submodular/graph_problem.hpp
+-- Installing: /usr/local/include/ioh/problem/submodular/max_coverage.hpp
+-- Installing: /usr/local/include/ioh/problem/submodular/max_influence.hpp
+-- Installing: /usr/local/include/ioh/problem/submodular/max_cut.hpp
+-- Installing: /usr/local/include/ioh/problem/utils.hpp
+-- Installing: /usr/local/include/ioh/problem/submodular.hpp
+-- Installing: /usr/local/include/ioh/problem/wmodel.hpp
+-- Up-to-date: /usr/local/include/ioh/common
+-- Installing: /usr/local/include/ioh/common/optimization_type.hpp
+-- Installing: /usr/local/include/ioh/common/timer.hpp
+-- Installing: /usr/local/include/ioh/common/file.hpp
+-- Installing: /usr/local/include/ioh/common/format.hpp
+-- Installing: /usr/local/include/ioh/common/clutchlog.h
+-- Installing: /usr/local/include/ioh/common/factory.hpp
+-- Installing: /usr/local/include/ioh/common/repr.hpp
+-- Installing: /usr/local/include/ioh/common/log.hpp
+-- Installing: /usr/local/include/ioh/common/random.hpp
+-- Installing: /usr/local/include/ioh/common/sobol.hpp
+-- Installing: /usr/local/include/ioh/common/sampler.hpp
+-- Installing: /usr/local/include/ioh/common/config.hpp
+-- Installing: /usr/local/include/ioh/common/container_utils.hpp
+-- Installing: /usr/local/include/ioh/problem.hpp
+-- Installing: /usr/local/include/ioh/logger.hpp
+-- Installing: /usr/local/include/ioh/experiment.hpp
+-- Up-to-date: /usr/local/include/ioh/logger
+-- Installing: /usr/local/include/ioh/logger/eaf.hpp
+-- Installing: /usr/local/include/ioh/logger/analyzer.hpp
+-- Installing: /usr/local/include/ioh/logger/store.hpp
+-- Installing: /usr/local/include/ioh/logger/combine.hpp
+-- Installing: /usr/local/include/ioh/logger/eah.hpp
+-- Installing: /usr/local/include/ioh/logger/loggers.hpp
+-- Installing: /usr/local/include/ioh/logger/triggers.hpp
+-- Installing: /usr/local/include/ioh/logger/flatfile.hpp
+-- Installing: /usr/local/include/ioh/logger/properties.hpp
+-- Installing: /usr/local/include/ioh/logger/loginfo.hpp
+-- Installing: /usr/local/include/ioh/suite.hpp
+-- Installing: /usr/local/include/README.md
+-- Installing: /usr/local/include/ioh.hpp
+-- Installing: /usr/local/lib/cmake/ioh/ioh-config.cmake
+-- Installing: /usr/local/lib/cmake/ioh/ioh-config-version.cmake
+-- Installing: /usr/local/lib/cmake/ioh/ioh-targets.cmake
 ```
