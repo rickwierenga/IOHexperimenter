@@ -50,7 +50,7 @@ nevergrad_algorithms = [
   # "SADiscreteOnePlusOneLin100",
   # "SparseDoubleFastGADiscreteOnePlusOne",
 ]
-budget = 100_000
+budget = 1_000
 
 class TestedFunction(nevergrad.functions.ExperimentFunction):
 
