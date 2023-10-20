@@ -4,11 +4,14 @@ warnings.filterwarnings("ignore", message="Bounds are 1.0 sigma away from each o
 
 import greedy
 import ioh
-import nevergrad
 import nevergrad.benchmark
 import nevergrad.functions
 import variables_info
 
+# [2000, 2001, 2002, 2003, 2004, 2100, 2101, 2102, 2103, 2104, 2105, 2106, 2107, 2108, 2109, 2110, 2111,
+# 2112, 2113, 2114, 2115, 2116, 2117, 2118, 2119, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2127, 2200,
+# 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2212, 2213, 2214, 2215, 2216, 2217,
+# 2218, 2219, 2220, 2221, 2222, 2223, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308]
 submodular_problem_ids = [2116, 2117, 2118]
 nevergrad_algorithms = [
   "DiscreteLenglerFourthOnePlusOne",
@@ -51,6 +54,7 @@ nevergrad_algorithms = [
   # "SparseDoubleFastGADiscreteOnePlusOne",
 ]
 budget = 1_000
+num_runs = 10
 
 class TestedFunction(nevergrad.functions.ExperimentFunction):
 
@@ -69,37 +73,58 @@ class TestedFunction(nevergrad.functions.ExperimentFunction):
 
 for nevergrad_algorithm in nevergrad_algorithms:
   for submodular_problem_id in submodular_problem_ids:
+    for _ in range(num_runs):
 
-    if nevergrad_algorithm == "Generalized greedy algorithm":
-      # Generalized greedy algorithm
-      # =================================================================================================
-      ioh_logger = ioh.logger.Analyzer(
-        root="nevergrad.benchmark.Experiment",
-        folder_name="Generalized greedy algorithm",
-        algorithm_name="Generalized greedy algorithm",
-      )
-      ioh_logger.reset()
+      if nevergrad_algorithm == "Generalized greedy algorithm":
+        ioh_logger = ioh.logger.Analyzer(
+          # [ioh.logger.trigger.ALWAYS],
+          additional_properties = [
+            # ioh.logger.property.EVALUATIONS,
+            # ioh.logger.property.RAWY,
+            ioh.logger.property.RAWYBEST,
+            ioh.logger.property.TRANSFORMEDY,
+            ioh.logger.property.TRANSFORMEDYBEST,
+            # ioh.logger.property.CURRENTBESTY,
+            # ioh.logger.property.CURRENTY,
+            # ioh.logger.property.PENALTY,
+            # ioh.logger.property.VIOLATION,
+          ],
+          algorithm_name="Generalized greedy algorithm",
+          folder_name="Generalized greedy algorithm",
+          root="nevergrad.benchmark.Experiment",
+        )
+        ioh_logger.reset()
 
-      submodular_problem = ioh.get_problem(submodular_problem_id, 1, 1, ioh.ProblemClass.GRAPH)
-      submodular_problem.attach_logger(ioh_logger)
-      greedy.generalized_greedy_algorithm(submodular_problem)
-      # =================================================================================================
+        submodular_problem = ioh.get_problem(submodular_problem_id, 1, 1, ioh.ProblemClass.GRAPH)
+        submodular_problem.attach_logger(ioh_logger)
+        greedy.generalized_greedy_algorithm(submodular_problem)
+      else:
+        ioh_logger = ioh.logger.Analyzer(
+          # [ioh.logger.trigger.ALWAYS],
+          additional_properties = [
+            # ioh.logger.property.EVALUATIONS,
+            # ioh.logger.property.RAWY,
+            ioh.logger.property.RAWYBEST,
+            ioh.logger.property.TRANSFORMEDY,
+            ioh.logger.property.TRANSFORMEDYBEST,
+            # ioh.logger.property.CURRENTBESTY,
+            # ioh.logger.property.CURRENTY,
+            # ioh.logger.property.PENALTY,
+            # ioh.logger.property.VIOLATION,
+          ],
+          algorithm_name=nevergrad_algorithm,
+          folder_name=nevergrad_algorithm,
+          root="nevergrad.benchmark.Experiment",
+        )
+        ioh_logger.reset()
 
-    else:
-      ioh_logger = ioh.logger.Analyzer(
-        root="nevergrad.benchmark.Experiment",
-        folder_name=nevergrad_algorithm,
-        algorithm_name=nevergrad_algorithm,
-      )
-      ioh_logger.reset()
+        submodular_problem = ioh.get_problem(submodular_problem_id, 1, 1, ioh.ProblemClass.GRAPH)
+        submodular_problem.attach_logger(ioh_logger)
 
-      submodular_problem = ioh.get_problem(submodular_problem_id, 1, 1, ioh.ProblemClass.GRAPH)
-      submodular_problem.attach_logger(ioh_logger)
-
-      nevergrad_experiment = nevergrad.benchmark.Experiment(
-        TestedFunction(submodular_problem),
-        optimizer=nevergrad_algorithm,
-        budget=budget,
-        num_workers=1,
-      )
-      nevergrad_experiment.run()
+        nevergrad_experiment = nevergrad.benchmark.Experiment(
+          TestedFunction(submodular_problem),
+          optimizer=nevergrad_algorithm,
+          budget=budget,
+          num_workers=1,
+        )
+        nevergrad_experiment.run()
