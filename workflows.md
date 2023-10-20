@@ -525,3 +525,30 @@ In this, case just close the connection to the ssh server and open a new one:
 ipython3 setup.py bdist_wheel
 pip install ./dist/ioh-0.3.11-cp39-cp39-linux_x86_64.whl
 ```
+
+```sh
+module add cmake/3.22
+module add conda3-2023.02
+module add gcc/11.2
+module add LLVM/clang-llvm-10.0
+
+conda activate ./.conda_environment
+cd tests/python/
+ipython3 never.py
+```
+
+Run Nevergrad on the cluster.
+```sh
+module add cmake/3.22
+module add conda3-2023.02
+module add gcc/11.2
+module add LLVM/clang-llvm-10.0
+
+conda activate base
+rm -rf ./.conda_environment
+conda env create --prefix ./.conda_environment --file conda.yaml
+
+conda activate ./.conda_environment
+cd tests/python/
+ipython3 never.py
+```
