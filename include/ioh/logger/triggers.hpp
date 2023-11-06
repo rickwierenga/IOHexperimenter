@@ -265,7 +265,7 @@ namespace ioh
          */
         struct OnImprovement : logger::Trigger
         {
-            bool operator()(const logger::Info &log_info, const problem::MetaData&) override
+            bool operator()(const logger::Info &log_info, const problem::MetaData &) override
             {
                 IOH_DBG(debug, "trigger OnImprovement called: " << log_info.has_improved);
                 return log_info.has_improved;
@@ -277,43 +277,41 @@ namespace ioh
          */
         inline OnImprovement on_improvement; // Uncomment if one want a library.
 
-
-        struct OnDeltaImprovement: logger::Trigger {
+        //! Trigger to log when there is improvement of at least size delta
+        struct OnDeltaImprovement : logger::Trigger
+        {
             double delta;
             double best_so_far;
 
-            OnDeltaImprovement(const double delta = 1e-10): delta(delta) {
-                reset();
+            OnDeltaImprovement(const double delta = 1e-10,
+                               const double best_so_far = std::numeric_limits<double>::signaling_NaN()) :
+                delta(delta),
+                best_so_far(best_so_far)
+            {
             }
 
-            OnDeltaImprovement(const double delta, const double best_so_far): delta(delta), best_so_far(best_so_far) {
-            }
-            
-            bool operator()(const logger::Info &log_info, const problem::MetaData &pb_info) override {
-                if (std::isnan(best_so_far)){
+            bool operator()(const logger::Info &log_info, const problem::MetaData &pb_info) override
+            {
+                if (std::isnan(best_so_far) ||
+                    (pb_info.optimization_type(log_info.y, best_so_far) && std::abs(best_so_far - log_info.y) > delta))
+                {
                     best_so_far = log_info.y;
                     return true;
                 }
-
-                if (pb_info.optimization_type(log_info.y, best_so_far) && std::abs(best_so_far - log_info.y) > delta) {
-                    best_so_far = log_info.y;
-                    return true;
-                }                
                 return false;
             };
 
-            void reset() override {
-                best_so_far = std::numeric_limits<double>::signaling_NaN();
-            }
+            void reset() override { best_so_far = std::numeric_limits<double>::signaling_NaN(); }
         };
 
         //! Trigger when there is constraint violation
-        struct OnViolation: logger::Trigger {
+        struct OnViolation : logger::Trigger
+        {
             //! Track the number of violations
             int violations{};
 
             //! Call interface
-            bool operator()(const logger::Info &log_info, const problem::MetaData&) override
+            bool operator()(const logger::Info &log_info, const problem::MetaData &) override
             {
                 bool violation = log_info.violations[0] != 0.;
                 IOH_DBG(debug, "trigger OnViolation called: " << violation);
@@ -322,9 +320,7 @@ namespace ioh
             }
 
             //! Reset the violations counter
-            void reset() override {
-                violations = 0;
-            }
+            void reset() override { violations = 0; }
         };
 
         //! Log when there are violations
