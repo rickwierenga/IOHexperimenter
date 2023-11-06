@@ -180,7 +180,7 @@ namespace ioh::logger
                 out_ << sep_ << format("{:f}", fmt::join(log_info.x, sep_));
 
             out_ << eol_;
-            out_.flush();
+            // out_.flush();
         }
 
         //! Accessor for output directory
