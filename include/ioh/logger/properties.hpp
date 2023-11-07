@@ -115,7 +115,10 @@ namespace ioh
             {
                 auto opt = (*this)(log_info);
                 if (opt)
+                {
                     return fmt::format(format(), opt.value());
+                }
+                
                 return nan;
             }
         };
@@ -137,7 +140,7 @@ namespace ioh
         struct Evaluations : public logger::Property
         {
             //! Constructor.
-            Evaluations(const std::string& name = "evaluations", const std::string &format = "{:d}") :
+            Evaluations(const std::string& name = "evaluations", const std::string &format = "{:.0f}") :
                 logger::Property(name, format)
             {
             }

@@ -8,7 +8,6 @@
 
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>
 
 #ifdef FSEXPERIMENTAL
 #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
@@ -397,7 +396,20 @@ namespace ioh::common::file
         explicit UniqueFolder() {}
     };
 
-    const size_t PAGE_SIZE = sysconf(_SC_PAGESIZE);
+    constexpr const size_t PAGE_SIZE = 4096;
+
+    inline char *get_error()
+    {
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+        return strerror(errno);
+#pragma warning(pop)
+#else
+        return strerror(errno);
+#endif
+    }
+
 
     struct CachedFile
     {
@@ -405,51 +417,61 @@ namespace ioh::common::file
         FILE *file_ptr;
         std::vector<char> buffer;
 
-        CachedFile() : file_ptr(NULL) {}
+        CachedFile() : path{}, file_ptr{nullptr}, buffer{} {}
 
-        CachedFile(const fs::path &path) : path(path), file_ptr(fopen(path.c_str(), "a")), buffer{}
+        void open(const fs::path &new_path)
         {
-            if (file_ptr == NULL)
+            close();
+
+            path = new_path;
+            const auto error = fopen_s(&file_ptr, path.generic_string().c_str(), "ab");
+            if (error != 0)
             {
-                std::cout << strerror(errno) << std::endl;
+                std::cerr << "creating cachedfile: " << get_error() << std::endl;
             }
         }
 
-        virtual ~CachedFile()
+        void close()
         {
             if (is_open())
             {
-                auto ret = fwrite(buffer.data(), sizeof(char), buffer.size(), file_ptr);
+                const auto ret = fwrite(buffer.data(), sizeof(char), buffer.size(), file_ptr);
                 if (ret != buffer.size())
                 {
-                    std::cout << strerror(errno) << std::endl;
+                    std::cerr << "destroying cachedfile: " << get_error() << std::endl;
                 }
                 fclose(file_ptr);
+                file_ptr = nullptr;
                 buffer.clear();
-            }
+                path.clear();
+            }            
         }
 
-        bool is_open() const { return file_ptr != NULL; }
+        bool is_open() const { return file_ptr != nullptr; }
 
-        void operator()(const char *data, const size_t size)
+        virtual ~CachedFile()
+        {
+            close();
+        }
+
+        void write(const char *data, const size_t size)
         {
             buffer.insert(buffer.end(), data, data + size);
             if (buffer.size() >= PAGE_SIZE)
             {
                 const size_t size = (buffer.size() / PAGE_SIZE) * PAGE_SIZE;
-                auto ret = fwrite(buffer.data(), sizeof(char), size, file_ptr);
+                const auto ret = fwrite(buffer.data(), sizeof(char), size, file_ptr);
                 if (ret != buffer.size())
                 {
-                    std::cout << strerror(errno) << std::endl;
+                    std::cerr << "writing cached file: " << get_error() << std::endl;
                 }
                 buffer.erase(buffer.begin(), buffer.begin() + size);
             }
         }
 
-        void operator()(const std::string &s)
+        void write(const std::string &s)
         {
-            // std::cout << path << ": " << s << std::endl;
-            operator()(s.data(), s.size());
+            write(s.data(), s.size());
         }
     };
 } // namespace ioh::common::file

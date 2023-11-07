@@ -70,12 +70,10 @@ namespace ioh::logger
         //! Open a file
         void open_stream(const std::string &filename, const fs::path &output_directory)
         {
-            bool should_open = false;
             if (filename != filename_)
             {
                 filename_ = filename;
-                // out_.close();
-                should_open = true;
+                out_.close();
             }
 
             if (output_directory_ != output_directory)
@@ -86,17 +84,15 @@ namespace ioh::logger
                     IOH_DBG(debug, "some directories do not exist in " << output_directory_ << ", try to create them")
                     create_directories(output_directory_);
                 }
-                // out_.close();
-                should_open = true;
+                out_.close();
             }
 
-            if (!out_.is_open() or should_open) //(!out_.is_open())
+            if (!out_.is_open())
             {
                 IOH_DBG(debug, "will output data in " << output_directory_ / filename_)
                 // out_ = std::ofstream(output_directory_ / filename_, std::ofstream::out | std::ofstream::app);
                 // std::cout << "opening file at: " << output_directory_ / filename_ << std::endl;
-                out_ = common::file::CachedFile(output_directory_ / filename_);
-                
+                out_.open(output_directory_ / filename_);
                 requires_header_ = true;
             }
         }
@@ -131,7 +127,7 @@ namespace ioh::logger
             common_header_(format("{}", fmt::join(common_header_titles.begin(), common_header_titles.end(), sep_)) +
                            (common_header_titles.empty() ? "" : sep_)),
             repeat_header_(repeat_header), store_positions_(store_positions), requires_header_(true),
-            log_meta_data_(!common_header_titles.empty()), output_directory_(output_directory), filename_(filename),
+            log_meta_data_(!common_header_titles.empty()), output_directory_(output_directory), filename_(filename), out_{},
             current_run_(0), current_meta_data_{}
         {
             assert(common_header_titles.empty() || common_header_titles.size() == 7);
@@ -172,35 +168,36 @@ namespace ioh::logger
                 //         out_ << sep_ << "x" << i;
                 // out_ << eol_;
 
-                out_(com_ + common_header_ + format("{}", fmt::join(properties_vector_, sep_)));
+                out_.write(com_ + common_header_ + format("{}", fmt::join(properties_vector_, sep_)));
                 if (store_positions_)
                     for (size_t i = 0; i < log_info.x.size(); i++)
-                        out_(sep_ + "x" + std::to_string(i));
-                out_(eol_);
+                        out_.write(sep_ + "x" + std::to_string(i));
+                out_.write(eol_);
                 requires_header_ = false;
             }
 
             IOH_DBG(xdebug, "print problem meta data")
             // out_ << current_meta_data_;
-            out_(current_meta_data_);
+            out_.write(current_meta_data_);
             
             IOH_DBG(xdebug, "print watched properties")
             
             for (auto p = properties_vector_.begin(); p != properties_vector_.end();){
                 // out_ << p->get().call_to_string(log_info, nan_) << (++p != properties_vector_.end() ? sep_ : "");
-                auto str = p->get().call_to_string(log_info, nan_); // + (++p != properties_vector_.end() ? sep_ : "");
+                auto& property = p->get();
+                auto str = property.call_to_string(log_info, nan_); // + (++p != properties_vector_.end() ? sep_ : "");
                 if (++p != properties_vector_.end())
                     str += sep_;
                 // std::cout << str << std::endl;
-                out_(str);
+                out_.write(str);
             }
 
             if (store_positions_)
                 // out_ << sep_ << format("{:f}", fmt::join(log_info.x, sep_));
-                out_(sep_ + format("{:f}", fmt::join(log_info.x, sep_)));
+                out_.write(sep_ + format("{:f}", fmt::join(log_info.x, sep_)));
 
             // out_ << eol_;
-            out_(eol_);
+            out_.write(eol_);
         }
 
         //! Accessor for output directory
@@ -211,10 +208,11 @@ namespace ioh::logger
 
         //! close data file
         virtual void close() override {
-            // if (out_.is_open()){
-            //     IOH_DBG(debug, "close data file")
-            //     out_.close();
-            // }
+            if (out_.is_open())
+            {
+                IOH_DBG(debug, "close data file")
+                out_.close();
+             }
         }
         
         virtual ~FlatFile()
@@ -240,6 +238,7 @@ namespace ioh::logger
                 ss << sep_ << (problem_.value().optimization_type == common::OptimizationType::MIN ? "min" : "max");
                 ss << sep_ << problem_.value().n_variables;
                 ss << sep_ << current_run_;
+                ss << sep_;
                 current_meta_data_ = ss.str();
             }
         }
