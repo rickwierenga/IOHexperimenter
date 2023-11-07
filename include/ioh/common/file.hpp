@@ -3,8 +3,12 @@
 
 #include <string>
 #include <utility>
-#include "ioh/common/log.hpp"
 #include "ioh/common/format.hpp"
+#include "ioh/common/log.hpp"
+
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #ifdef FSEXPERIMENTAL
 #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
@@ -12,7 +16,7 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 #else
-#undef JSON_HAS_EXPERIMENTAL_FILESYSTEM 
+#undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
 #define JSON_HAS_FILESYSTEM 1
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -51,7 +55,6 @@ namespace ioh::common::file
         {
             return static_cast<T>(std::stod(s));
         }
-
 
         /**
          * @brief Helper class to extract lines with istream_iterator
@@ -96,7 +99,6 @@ namespace ioh::common::file
             return {};
         }
 
-
         /**
          * @brief Finds a file located in the static folder of this repository
          *
@@ -115,7 +117,6 @@ namespace ioh::common::file
             return file;
         }
 
-
         //! Helper type for detecting shared ptr of which the element type can be constructed from a string
         template <typename T>
         struct is_shared_ptr_string_constructible : std::false_type
@@ -127,19 +128,21 @@ namespace ioh::common::file
         };
     } // namespace utils
 
-
     /**
      * @brief Merge the tmp_dat_file_path to tar_dat_file_path
-     * 
-     * @param tmp_dat_file_path 
-     * @param tar_dat_file_path 
+     *
+     * @param tmp_dat_file_path
+     * @param tar_dat_file_path
      */
-    inline void merge_dat_file(const std::string tmp_dat_file_path, const std::string tar_dat_file_path) {
-        std::ofstream tar_dat_file(tar_dat_file_path,std::ios_base::app);
+    inline void merge_dat_file(const std::string tmp_dat_file_path, const std::string tar_dat_file_path)
+    {
+        std::ofstream tar_dat_file(tar_dat_file_path, std::ios_base::app);
         std::ifstream tmp_dat_file(tmp_dat_file_path);
         std::string tmp_line;
-        if (tar_dat_file.is_open() && tmp_dat_file.is_open()) {
-            while (getline(tmp_dat_file,tmp_line)) {
+        if (tar_dat_file.is_open() && tmp_dat_file.is_open())
+        {
+            while (getline(tmp_dat_file, tmp_line))
+            {
                 tar_dat_file << tmp_line << std::endl;
             }
         }
@@ -150,54 +153,64 @@ namespace ioh::common::file
 #ifdef HAS_JSON
     /**
      * @brief Merge the files in tmp_folder into the target folder
-     * 
-     * @param tmp_folder 
-     * @param target_folder 
+     *
+     * @param tmp_folder
+     * @param target_folder
      */
-    inline void merge_output_to_single_folder(std::string tmp_folder, std::string target_folder) 
+    inline void merge_output_to_single_folder(std::string tmp_folder, std::string target_folder)
     {
         const fs::path tmp_directory_path{tmp_folder};
         const fs::path target_directory_path{target_folder};
 
         // std::vector<fs::path> tmp_sub_directories;
         // std::vector<fs::path> tmp_sub_info;
-        
+
         // ! Getting the file name directory names
-        for (auto const& dir_entry : fs::directory_iterator{tmp_directory_path}) 
+        for (auto const &dir_entry : fs::directory_iterator{tmp_directory_path})
         {
-            if(!fs::is_directory(dir_entry)) {
+            if (!fs::is_directory(dir_entry))
+            {
                 std::string tmp_file_string = dir_entry.path().filename().string();
-                if(tmp_file_string.substr(tmp_file_string.length()-5,tmp_file_string.length()-1) == ".json")
+                if (tmp_file_string.substr(tmp_file_string.length() - 5, tmp_file_string.length() - 1) == ".json")
                 {
                     std::ifstream tmp(dir_entry.path().string(), std::ifstream::binary);
                     json tmp_data = json::parse(tmp);
 
-                    if(!fs::exists(target_folder + tmp_file_string)) {
-                        fs::copy(tmp_folder+tmp_file_string, target_folder+tmp_file_string);
+                    if (!fs::exists(target_folder + tmp_file_string))
+                    {
+                        fs::copy(tmp_folder + tmp_file_string, target_folder + tmp_file_string);
                         std::ifstream tar(target_folder + tmp_file_string);
                         json tar_data = json::parse(tar);
                         auto tmp_scenarios = tmp_data["scenarios"];
-                        for (auto tmp_dim_data : tmp_scenarios) {
-                            merge_dat_file(tmp_folder+to_string(tmp_dim_data["path"]),target_folder+to_string(tmp_dim_data["path"]));
+                        for (auto tmp_dim_data : tmp_scenarios)
+                        {
+                            merge_dat_file(tmp_folder + to_string(tmp_dim_data["path"]),
+                                           target_folder + to_string(tmp_dim_data["path"]));
                         }
                         tar.close();
-                    } else {
+                    }
+                    else
+                    {
                         std::ifstream tar(target_folder + tmp_file_string);
                         json tar_data = json::parse(tar);
                         auto tmp_scenarios = tmp_data["scenarios"];
-                        for (auto tmp_dim_data : tmp_scenarios) {
+                        for (auto tmp_dim_data : tmp_scenarios)
+                        {
                             auto dim = tmp_dim_data["dimension"];
                             auto tmp_run_data = tmp_dim_data["runs"];
-                            for (size_t i = 0; i != tar_data["scenarios"].size(); ++i) {
-                                for (auto tmp_ins_data : tmp_run_data) {
-                                    if(tar_data["scenarios"][i]["dimension"] == dim) {
-                                    tar_data["scenarios"][i]["runs"] += tmp_ins_data;
+                            for (size_t i = 0; i != tar_data["scenarios"].size(); ++i)
+                            {
+                                for (auto tmp_ins_data : tmp_run_data)
+                                {
+                                    if (tar_data["scenarios"][i]["dimension"] == dim)
+                                    {
+                                        tar_data["scenarios"][i]["runs"] += tmp_ins_data;
                                     }
                                 }
                             }
                             auto path = to_string(tmp_dim_data["path"]);
-                            path.erase(remove(path.begin(), path.end(), '"'), path.end()); 
-                            merge_dat_file(tmp_folder+path,target_folder+path);
+                            path.erase(remove(path.begin(), path.end(), '"'), path.end());
+                            merge_dat_file(tmp_folder + path, target_folder + path);
                         }
                         tar.close();
 
@@ -206,11 +219,11 @@ namespace ioh::common::file
                         tar_json.close();
                     }
                 }
-            }   
+            }
         }
     }
-#endif // DEBUG    
-    
+#endif // DEBUG
+
     /**
      * @brief Get the file contents as string object
      *
@@ -223,7 +236,6 @@ namespace ioh::common::file
         std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
         return str;
     }
-
 
     /**
      * @brief Extracts all numbers from a file and converts them to a given numeric type T
@@ -243,7 +255,6 @@ namespace ioh::common::file
         return result;
     }
 
-
     /**
      * @brief Get the file contents as a string vector per line
      * example usage:
@@ -253,13 +264,13 @@ namespace ioh::common::file
      *      Person(const std::string& name): name(name) {}
      * };
      * std::vector<Person> persons = as_text_vector<Person>(file_with_names);
-     * @endcode 
+     * @endcode
      * @tparam T the type of the output vector, should be instantiatable from a std::string
      * @param path the path of the file
      * @return std::vector<T> the contents of the file
      */
     template <typename T = std::string,
-              typename std::enable_if<std::is_constructible<T, std::string>::value, T>::type* = nullptr>
+              typename std::enable_if<std::is_constructible<T, std::string>::value, T>::type * = nullptr>
     std::vector<T> as_text_vector(const fs::path &path)
     {
         std::istringstream in(as_string(path));
@@ -273,22 +284,24 @@ namespace ioh::common::file
 
     // TODO: make use templates for this function
     // example SFINAI https://stackoverflow.com/questions/62264951/handle-logical-or-for-predicates-in-stdenable-if
-    // Something like: 
+    // Something like:
     // template <
     //         typename T,
     //         typename = typename std::enable_if<is_shared_ptr<T>::value &&
-    //                                            std::is_constructible<typename T::element_type, std::string>::value>::value>
+    //                                            std::is_constructible<typename T::element_type,
+    //                                            std::string>::value>::value>
     // The above fails because of substitutions with types that don't have T::element_type
     template <typename T,
-              typename std::enable_if<utils::is_shared_ptr_string_constructible<T>::value, T>::type* = nullptr>
+              typename std::enable_if<utils::is_shared_ptr_string_constructible<T>::value, T>::type * = nullptr>
     std::vector<T> as_text_vector(const fs::path &path)
     {
         std::istringstream in(as_string(path));
         std::vector<T> result;
 
         std::transform(std::istream_iterator<utils::Line>(in), std::istream_iterator<utils::Line>(),
-                       std::back_inserter(result),
-                       [](const utils::Line &line) { return std::make_shared<typename T::element_type>(static_cast<std::string>(line)); });
+                       std::back_inserter(result), [](const utils::Line &line) {
+                           return std::make_shared<typename T::element_type>(static_cast<std::string>(line));
+                       });
         return result;
     }
 
@@ -383,4 +396,60 @@ namespace ioh::common::file
         //! Construct a new Unique Folder object.
         explicit UniqueFolder() {}
     };
-} 
+
+    const size_t PAGE_SIZE = sysconf(_SC_PAGESIZE);
+
+    struct CachedFile
+    {
+        fs::path path;
+        FILE *file_ptr;
+        std::vector<char> buffer;
+
+        CachedFile() : file_ptr(NULL) {}
+
+        CachedFile(const fs::path &path) : path(path), file_ptr(fopen(path.c_str(), "a")), buffer{}
+        {
+            if (file_ptr == NULL)
+            {
+                std::cout << strerror(errno) << std::endl;
+            }
+        }
+
+        virtual ~CachedFile()
+        {
+            if (is_open())
+            {
+                auto ret = fwrite(buffer.data(), sizeof(char), buffer.size(), file_ptr);
+                if (ret != buffer.size())
+                {
+                    std::cout << strerror(errno) << std::endl;
+                }
+                fclose(file_ptr);
+                buffer.clear();
+            }
+        }
+
+        bool is_open() const { return file_ptr != NULL; }
+
+        void operator()(const char *data, const size_t size)
+        {
+            buffer.insert(buffer.end(), data, data + size);
+            if (buffer.size() >= PAGE_SIZE)
+            {
+                const size_t size = (buffer.size() / PAGE_SIZE) * PAGE_SIZE;
+                auto ret = fwrite(buffer.data(), sizeof(char), size, file_ptr);
+                if (ret != buffer.size())
+                {
+                    std::cout << strerror(errno) << std::endl;
+                }
+                buffer.erase(buffer.begin(), buffer.begin() + size);
+            }
+        }
+
+        void operator()(const std::string &s)
+        {
+            // std::cout << path << ": " << s << std::endl;
+            operator()(s.data(), s.size());
+        }
+    };
+} // namespace ioh::common::file
