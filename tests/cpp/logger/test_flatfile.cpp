@@ -18,7 +18,7 @@ TEST_F(BaseTest, logger_flatfile)
         auto logger = logger::FlatFile( {always}, {transformed_y}, "IOH.dat", "." );
 
         const int runs = 3;
-        const int samples = 3;
+        const int samples = 300;
         
         for(auto pb : std::array<problem::BBOB*,3>({&p0,&p1,&p2})) {
             pb->attach_logger(logger);

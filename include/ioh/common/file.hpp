@@ -1,6 +1,5 @@
 
 #pragma once
-
 #include <string>
 #include <utility>
 #include "ioh/common/format.hpp"
@@ -422,10 +421,9 @@ namespace ioh::common::file
         void open(const fs::path &new_path)
         {
             close();
-
             path = new_path;
-            const auto error = fopen_s(&file_ptr, path.generic_string().c_str(), "ab");
-            if (error != 0)
+            file_ptr = fopen(path.generic_string().c_str(), "ab");
+            if (file_ptr == NULL)
             {
                 std::cerr << "creating cachedfile: " << get_error() << std::endl;
             }
@@ -435,11 +433,7 @@ namespace ioh::common::file
         {
             if (is_open())
             {
-                const auto ret = fwrite(buffer.data(), sizeof(char), buffer.size(), file_ptr);
-                if (ret != buffer.size())
-                {
-                    std::cerr << "destroying cachedfile: " << get_error() << std::endl;
-                }
+                write_chunk(buffer.size());
                 fclose(file_ptr);
                 file_ptr = nullptr;
                 buffer.clear();
@@ -454,18 +448,22 @@ namespace ioh::common::file
             close();
         }
 
-        void write(const char *data, const size_t size)
+        void write_chunk(const size_t chunk_size) {
+            const auto ret = fwrite(buffer.data(), sizeof(char), chunk_size, file_ptr);
+            if (ret != chunk_size)
+            {
+                std::cerr << "writing cached file: " << get_error() << std::endl;
+            }
+            buffer.erase(buffer.begin(), buffer.begin() + chunk_size);
+        }
+
+        void write(const char *data, const size_t data_size)
         {
-            buffer.insert(buffer.end(), data, data + size);
+            buffer.insert(buffer.end(), data, data + data_size);
             if (buffer.size() >= PAGE_SIZE)
             {
                 const size_t size = (buffer.size() / PAGE_SIZE) * PAGE_SIZE;
-                const auto ret = fwrite(buffer.data(), sizeof(char), size, file_ptr);
-                if (ret != buffer.size())
-                {
-                    std::cerr << "writing cached file: " << get_error() << std::endl;
-                }
-                buffer.erase(buffer.begin(), buffer.begin() + size);
+                write_chunk(size);                
             }
         }
 
