@@ -395,7 +395,6 @@ namespace ioh::common::file
         explicit UniqueFolder() {}
     };
 
-    constexpr const size_t PAGE_SIZE = 4096;
 
     inline char *get_error()
     {
@@ -409,20 +408,25 @@ namespace ioh::common::file
 #endif
     }
 
+    constexpr const size_t PAGE_SIZE = 4096;
 
     struct CachedFile
     {
         fs::path path;
         FILE *file_ptr;
-        std::vector<char> buffer;
+        alignas(PAGE_SIZE) std::array<char, PAGE_SIZE> buffer;
+        size_t buffered_elements;
 
-        CachedFile() : path{}, file_ptr{nullptr}, buffer{} {}
+        CachedFile() : path{}, file_ptr{nullptr}, buffer{}, buffered_elements{0} {}
 
         void open(const fs::path &new_path)
         {
             close();
             path = new_path;
+#pragma warning(push)
+#pragma warning(disable : 4996)
             file_ptr = fopen(path.generic_string().c_str(), "ab");
+#pragma warning(pop)
             if (file_ptr == NULL)
             {
                 std::cerr << "creating cachedfile: " << get_error() << std::endl;
@@ -433,43 +437,47 @@ namespace ioh::common::file
         {
             if (is_open())
             {
-                write_chunk(buffer.size());
+                write_chunk();
                 fclose(file_ptr);
                 file_ptr = nullptr;
-                buffer.clear();
+                buffered_elements = 0;
                 path.clear();
-            }            
+            }
         }
 
         bool is_open() const { return file_ptr != nullptr; }
 
-        virtual ~CachedFile()
-        {
-            close();
-        }
+        virtual ~CachedFile() { close(); }
 
-        void write_chunk(const size_t chunk_size) {
-            const auto ret = fwrite(buffer.data(), sizeof(char), chunk_size, file_ptr);
-            if (ret != chunk_size)
+        void write_chunk()
+        {
+            const auto ret = fwrite(buffer.data(), sizeof(char), buffered_elements, file_ptr);
+            if (ret != buffered_elements)
             {
                 std::cerr << "writing cached file: " << get_error() << std::endl;
             }
-            buffer.erase(buffer.begin(), buffer.begin() + chunk_size);
+            buffered_elements = 0;
         }
 
         void write(const char *data, const size_t data_size)
         {
-            buffer.insert(buffer.end(), data, data + data_size);
-            if (buffer.size() >= PAGE_SIZE)
+
+
+            size_t bytes_written = 0;
+            while (bytes_written < data_size)
             {
-                const size_t size = (buffer.size() / PAGE_SIZE) * PAGE_SIZE;
-                write_chunk(size);                
+                const size_t space = (PAGE_SIZE)-buffered_elements;
+                const size_t required = data_size - bytes_written;
+                const size_t to_write = std::min(space, required);
+
+                std::copy(data + bytes_written, data + bytes_written + to_write, buffer.begin() + buffered_elements);
+                bytes_written += to_write;
+                buffered_elements += to_write;
+                if (buffered_elements == PAGE_SIZE)
+                    write_chunk();
             }
         }
 
-        void write(const std::string &s)
-        {
-            write(s.data(), s.size());
-        }
+        void write(const std::string &s) { write(s.data(), s.size()); }
     };
 } // namespace ioh::common::file

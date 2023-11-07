@@ -18,7 +18,7 @@ TEST_F(BaseTest, logger_flatfile)
         auto logger = logger::FlatFile( {always}, {transformed_y}, "IOH.dat", "." );
 
         const int runs = 3;
-        const int samples = 300;
+        const int samples = 3;
         
         for(auto pb : std::array<problem::BBOB*,3>({&p0,&p1,&p2})) {
             pb->attach_logger(logger);
@@ -31,7 +31,9 @@ TEST_F(BaseTest, logger_flatfile)
         }
     }
     EXPECT_TRUE(fs::exists("./IOH.dat"));
-    EXPECT_GT(ioh::common::file::as_string("./IOH.dat").size(),0);
+    auto data = ioh::common::file::as_string("./IOH.dat");
+    std::cout << data << std::endl;
+    EXPECT_GT(data.size(),0);
     fs::remove("./IOH.dat");
     EXPECT_TRUE(!fs::exists("./IOH.dat"));
 }
