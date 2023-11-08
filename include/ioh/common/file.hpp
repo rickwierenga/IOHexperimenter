@@ -592,6 +592,7 @@ namespace ioh::common::file
         std::queue<std::vector<char>> queue;
         std::vector<char> buffer;
         bool done;
+        size_t buffer_size_;
         std::thread thread;
 
         void worker()
@@ -617,14 +618,18 @@ namespace ioh::common::file
                 }
             }
             out.flush();
-        }
+        } 
 
     public:
-        async_buf(std::string const &name, const size_t buffer_size) :
-            out(name), buffer(buffer_size), done(false), 
+        async_buf(std::string const &name, const size_t buffer_size, const bool disable_local_buffering) :
+            out(name), buffer(buffer_size), done(false), buffer_size_(buffer_size),
             thread(&async_buf::worker, this)
         {
+            if (disable_local_buffering)
+                out.rdbuf()->pubsetbuf(nullptr, 0);
+
             this->setp(this->buffer.data(), this->buffer.data() + this->buffer.size() - 1);
+
         }
         ~async_buf()
         {
@@ -651,7 +656,7 @@ namespace ioh::common::file
                     this->queue.push(std::move(this->buffer));
                 }
                 this->condition.notify_one();
-                this->buffer = std::vector<char>(128);
+                this->buffer = std::vector<char>(buffer_size_);
                 this->setp(this->buffer.data(), this->buffer.data() + this->buffer.size() - 1);
             }
             return 0;
@@ -664,15 +669,20 @@ namespace ioh::common::file
         std::ostream* out_;
         fs::path path_;
         size_t buffer_size_;
+        bool disable_local_buffering_;
 
-        AsyncWriter(const size_t buffer_size = 128) : buffer_(nullptr), out_(nullptr), path_{}, buffer_size_(buffer_size) {}
+        AsyncWriter(const size_t buffer_size = 128, const bool disable_local_buffering = false) :
+            buffer_(nullptr), out_(nullptr), path_{}, buffer_size_(buffer_size),
+            disable_local_buffering_(disable_local_buffering)
+        {
+        }
 
         virtual ~AsyncWriter() { close(); }
 
         void open(const fs::path &new_path) override
         {
             close();
-            buffer_ = new async_buf(new_path.generic_string(), buffer_size_);
+            buffer_ = new async_buf(new_path.generic_string(), buffer_size_, disable_local_buffering_);
             out_ = new std::ostream(buffer_);
             path_ = new_path;
         };

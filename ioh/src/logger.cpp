@@ -185,7 +185,11 @@ void define_writers(py::module &mod) {
         .def(py::init<>())
         ; 
 
-    py::class_<AsyncWriter, Writer, std::shared_ptr<AsyncWriter>>(m, "AsyncWriter").def(py::init<size_t>(), py::arg("buffer_size") = 128);  
+    py::class_<AsyncWriter, Writer, std::shared_ptr<AsyncWriter>>(m, "AsyncWriter")
+        .def(py::init<size_t>(), 
+            py::arg("buffer_size") = 128,
+            py::arg("disable_local_buffering") = false
+       );  
 
 }
 
