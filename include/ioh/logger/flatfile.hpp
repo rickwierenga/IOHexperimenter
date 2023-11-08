@@ -58,7 +58,7 @@ namespace ioh::logger
         std::string filename_;
     
         //! Output stream
-        std::unique_ptr<common::file::Writer> out_;
+        std::shared_ptr<common::file::Writer> out_;
         
         //! Current run
         size_t current_run_;
@@ -124,13 +124,14 @@ namespace ioh::logger
             common_header_(format("{}", fmt::join(common_header_titles.begin(), common_header_titles.end(), sep_)) +
                            (common_header_titles.empty() ? "" : sep_)),
             repeat_header_(repeat_header), store_positions_(store_positions), requires_header_(true),
-            log_meta_data_(!common_header_titles.empty()), output_directory_(output_directory), filename_(filename), out_{},
+            log_meta_data_(!common_header_titles.empty()), output_directory_(output_directory),
+            filename_(filename), out_{std::make_shared<common::file::OFStream>()},
             current_run_(0), current_meta_data_{}
         {
             assert(common_header_titles.empty() || common_header_titles.size() == 7);
         }
 
-      
+        void set_writer(const std::shared_ptr<common::file::Writer>& w) { out_ = w; }              
 
         void attach_problem(const problem::MetaData &problem) override
         {
@@ -173,7 +174,10 @@ namespace ioh::logger
             IOH_DBG(xdebug, "print watched properties")
             
             for (auto p = properties_vector_.begin(); p != properties_vector_.end();){
-                out_->write(p->get().call_to_string(log_info, nan_) << (++p != properties_vector_.end() ? sep_ : ""));
+                 auto str = p->get().call_to_string(log_info, nan_);
+                 if (++p != properties_vector_.end())
+                     str += sep_;
+                 out_->write(str);
             }
 
             if (store_positions_)

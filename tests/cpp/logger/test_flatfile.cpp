@@ -6,7 +6,7 @@
 
 using namespace ioh;
 
-TEST_F(BaseTest, logger_flatfile)
+size_t test_for_writer(const std::shared_ptr<ioh::common::file::Writer>& writer)
 {
     auto p0 = problem::bbob::Sphere(1, 2);
     auto p1 = problem::bbob::Sphere(1, 4);
@@ -15,15 +15,20 @@ TEST_F(BaseTest, logger_flatfile)
     trigger::Always always;
     watch::TransformedY transformed_y;
     {
-        auto logger = logger::FlatFile( {always}, {transformed_y}, "IOH.dat", "." );
+        auto logger = logger::FlatFile({always}, {transformed_y}, "IOH.dat", ".");
 
+        logger.set_writer(writer);
+        common::random::seed(1);
         const int runs = 3;
         const int samples = 3;
-        
-        for(auto pb : std::array<problem::BBOB*,3>({&p0,&p1,&p2})) {
+
+        for (auto pb : std::array<problem::BBOB *, 3>({&p0, &p1, &p2}))
+        {
             pb->attach_logger(logger);
-            for(auto r = 0; r < runs; ++r) {
-                for(auto s = 0; s < samples; ++s) {
+            for (auto r = 0; r < runs; ++r)
+            {
+                for (auto s = 0; s < samples; ++s)
+                {
                     (*pb)(common::random::pbo::uniform(pb->meta_data().n_variables, s));
                 }
                 pb->reset();
@@ -32,8 +37,18 @@ TEST_F(BaseTest, logger_flatfile)
     }
     EXPECT_TRUE(fs::exists("./IOH.dat"));
     auto data = ioh::common::file::as_string("./IOH.dat");
-    std::cout << data << std::endl;
-    EXPECT_GT(data.size(),0);
+    //std::cout << data << std::endl;
+    EXPECT_GT(data.size(), 0);
     fs::remove("./IOH.dat");
     EXPECT_TRUE(!fs::exists("./IOH.dat"));
+    return data.size();
+}
+
+TEST_F(BaseTest, logger_flatfile) { 
+    auto n1 = test_for_writer(std::make_shared<ioh::common::file::OFStream>());
+    auto n2 = test_for_writer(std::make_shared<ioh::common::file::FWriter>());
+    auto n3 = test_for_writer(std::make_shared<ioh::common::file::CachedFWriter>());
+    auto n4 = test_for_writer(std::make_shared<ioh::common::file::FWriter>(4096));
+
+    EXPECT_TRUE(n1 == n2 && n2 == n3 && n3 == n4) << n1 << " " << n2 << " " << n3 << " " << n4;
 }

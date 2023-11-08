@@ -7,6 +7,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #ifdef FSEXPERIMENTAL
 #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
@@ -396,18 +397,6 @@ namespace ioh::common::file
     };
 
 
-    inline char *get_error()
-    {
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4996)
-        return strerror(errno);
-#pragma warning(pop)
-#else
-        return strerror(errno);
-#endif
-    }
-
     inline FILE *open_file(const fs::path &path)
     {
 #ifdef _MSC_VER
@@ -420,27 +409,54 @@ namespace ioh::common::file
 #endif
     }
 
-    struct Writer {
-        void open(const fs::path &new_path) = 0;
-        void close() = 0;
-        bool is_open() = 0;
-        void write(const std::string&) = 0;
+    struct Writer
+    {
+        virtual void open(const fs::path &new_path) = 0;
+        virtual void close() = 0;
+        virtual bool is_open() = 0;
+        virtual void write(const std::string &) = 0;
     };
 
 
+    struct OFStream : Writer
+    {
+        std::ofstream out_;
+        fs::path path_;
+        OFStream() : out_{} {}
 
-    constexpr const size_t KB = 1024;
-    constexpr const size_t CACHE_SIZE = 4 * KB;
+        virtual ~OFStream() { close(); }
 
-    struct CachedFile
+        void open(const fs::path &new_path) override
+        {
+            close();
+            path_ = new_path;
+            out_.open(new_path);
+        };
+        void close() override
+        {
+            if (is_open())
+            {
+                out_.close();
+            }
+        };
+        bool is_open() override { return out_.is_open(); };
+        void write(const std::string &s) override { out_ << s; };
+    };
+
+    struct FWriter : Writer
     {
         fs::path path;
         FILE *file_ptr;
-        std::array<char, CACHE_SIZE> buffer;
-        size_t buffered_elements;
-        CachedFile() : path{}, file_ptr{nullptr}, buffer{}, buffered_elements{0} {}
 
-        void open(const fs::path &new_path)
+        size_t buffer_size;
+        int buffer_mode;
+
+        FWriter(size_t buffer_size = 0, int buffer_mode = _IOFBF) :
+            path{}, file_ptr{nullptr}, buffer_size{buffer_size}, buffer_mode{buffer_mode}
+        {
+        }
+
+        void open(const fs::path &new_path) override
         {
             close();
             path = new_path;
@@ -448,11 +464,73 @@ namespace ioh::common::file
 
             if (file_ptr == NULL)
             {
-                std::cerr << "creating cachedfile: " << get_error() << std::endl;
+                std::perror("creating cachedfile");
+                return;
+            }
+            if (buffer_size != 0)
+            {
+                std::cout << "BUFSIZ is " << BUFSIZ << ", setting to " << buffer_size << '\n';
+                if (std::setvbuf(file_ptr, nullptr, buffer_mode, buffer_size) != 0)
+                    std::perror("setvbuf failed");
+            }
+#ifndef _MSC_VER
+            else
+            {
+                struct stat stats;
+                if (fstat(fileno(file_ptr), &stats) != -1) // POSIX only
+                {
+                    std::cout << "BUFSIZ is " << BUFSIZ << ", but optimal block size is " << stats.st_blksize << '\n';
+                    if (std::setvbuf(file_ptr, nullptr, _IOFBF, stats.st_blksize) != 0)
+                    {
+                        std::perror("setvbuf failed"); // POSIX version sets errno
+                    }
+                }
+            }
+#endif
+        }
+
+        void close() override
+        {
+            if (is_open())
+            {
+                close_file();
+                path.clear();
             }
         }
 
-        void close()
+        void close_file()
+        {
+            fclose(file_ptr);
+            file_ptr = nullptr;
+        }
+
+        bool is_open() override { return file_ptr != nullptr; }
+
+        virtual ~FWriter() { close(); }
+
+
+        virtual void write(const char *data, const size_t data_size)
+        {
+            const auto ret = fwrite(data, sizeof(char), data_size, file_ptr);
+            if (ret != data_size)
+                std::perror("writing fwrite");
+        }
+
+        void write(const std::string &s) override { write(s.data(), s.size()); }
+    };
+
+
+    constexpr const size_t KB = 1024;
+    constexpr const size_t CACHE_SIZE = 16 * KB;
+
+    struct CachedFWriter : FWriter
+    {
+        std::array<char, CACHE_SIZE> buffer;
+        size_t buffered_elements;
+
+        CachedFWriter() : FWriter{}, buffer{}, buffered_elements{0} {}
+
+        void close() override
         {
             if (is_open())
             {
@@ -462,27 +540,23 @@ namespace ioh::common::file
                 path.clear();
             }
         }
-
-        void close_file() {
-            fclose(file_ptr);
-            file_ptr = nullptr;
+        void open(const fs::path &new_path) override
+        {
+            FWriter::open(new_path);
+            std::setvbuf(file_ptr, nullptr, _IONBF, 0);
         }
 
-        bool is_open() const { return file_ptr != nullptr; }
-
-        virtual ~CachedFile() { close(); }
+        virtual ~CachedFWriter() { close(); }
 
         void write_chunk()
         {
             const auto ret = fwrite(buffer.data(), sizeof(char), buffered_elements, file_ptr);
             if (ret != buffered_elements)
-            {
-                std::cerr << "writing cached file: " << get_error() << std::endl;
-            }
+                std::perror("writing cached file");
             buffered_elements = 0;
         }
 
-        void write(const char *data, const size_t data_size)
+        void write(const char *data, const size_t data_size) override
         {
             size_t bytes_written = 0;
             while (bytes_written < data_size)
@@ -498,7 +572,5 @@ namespace ioh::common::file
                     write_chunk();
             }
         }
-
-        void write(const std::string &s) { write(s.data(), s.size()); }
     };
 } // namespace ioh::common::file
