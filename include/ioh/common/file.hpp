@@ -7,6 +7,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/stat.h>
 
 #include <condition_variable>
@@ -475,9 +476,7 @@ namespace ioh::common::file
                 std::perror("creating cachedfile");
                 return;
             }
-            if (buffer_size != 0)
-            {
-                // std::cout << "BUFSIZ is " << BUFSIZ << ", setting to " << buffer_size << '\n';
+            if (buffer_size != 0){
                 if (std::setvbuf(file_ptr, nullptr, buffer_mode, buffer_size) != 0)
                     std::perror("setvbuf failed");
             }
@@ -485,14 +484,9 @@ namespace ioh::common::file
             else
             {
                 struct stat stats;
-                if (fstat(fileno(file_ptr), &stats) != -1) // POSIX only
-                {
-                    std::cout << "BUFSIZ is " << BUFSIZ << ", but optimal block size is " << stats.st_blksize << '\n';
+                if (fstat(fileno(file_ptr), &stats) != -1) 
                     if (std::setvbuf(file_ptr, nullptr, _IOFBF, stats.st_blksize) != 0)
-                    {
-                        std::perror("setvbuf failed"); // POSIX version sets errno
-                    }
-                }
+                        std::perror("setvbuf failed"); 
             }
 #endif
         }
@@ -506,7 +500,7 @@ namespace ioh::common::file
             }
         }
 
-        void close_file()
+        virtual void close_file()
         {
             fclose(file_ptr);
             file_ptr = nullptr;
@@ -527,15 +521,14 @@ namespace ioh::common::file
         void write(const std::string &s) override { write(s.data(), s.size()); }
     };
 
-
     struct CachedFWriter : FWriter
     {
         std::vector<char> buffer_;
         size_t buffered_elements_;
         size_t buffer_size_;
-
+        char* start;
         CachedFWriter(const size_t buffer_size = 4096) : 
-            FWriter{}, buffer_(buffer_size), buffered_elements_{0}, buffer_size_{buffer_size}
+            FWriter{}, buffer_(buffer_size), buffered_elements_{0}, buffer_size_{buffer_size}, start(buffer_.data())
         {
         }
 
@@ -565,9 +558,9 @@ namespace ioh::common::file
 
         virtual ~CachedFWriter() { close(); }
 
-        void write_chunk()
+        virtual void write_chunk()
         {
-            const auto ret = fwrite(buffer_.data(), sizeof(char), buffered_elements_, file_ptr);
+            const auto ret = fwrite(start, sizeof(char), buffered_elements_, file_ptr);
             if (ret != buffered_elements_)
                 std::perror("writing cached file");
             buffered_elements_ = 0;
@@ -578,11 +571,11 @@ namespace ioh::common::file
             size_t bytes_written = 0;
             while (bytes_written < data_size)
             {
-                const size_t space = buffer_size_-buffered_elements_;
+                const size_t space = buffer_size_ - buffered_elements_;
                 const size_t required = data_size - bytes_written;
                 const size_t to_write = std::min(space, required);
 
-                std::copy(data + bytes_written, data + bytes_written + to_write, buffer_.data() + buffered_elements_);
+                std::copy(data + bytes_written, data + bytes_written + to_write, start + buffered_elements_);
                 bytes_written += to_write;
                 buffered_elements_ += to_write;
                 if (buffered_elements_ == buffer_size_)
@@ -590,6 +583,70 @@ namespace ioh::common::file
             }
         }
     };
+
+#ifndef _MSC_VER 
+    struct DirectIOWriter: CachedFWriter {
+        int fileno;
+
+        DirectIOWriter(const size_t buffer_size = 4096): 
+            CachedFWriter(buffer_size),
+            fileno(-1)
+        {
+            size_t offset = 512 - ((size_t)start % 512);
+            buffer_.resize(buffer_.size() + offset);
+            start += offset;
+        }
+
+        void open(const fs::path &new_path) override
+        {
+            close();
+            path = new_path;
+            fileno = ::open(path.generic_string().c_str(), 
+                O_CREAT | O_WRONLY | O_APPEND | O_DIRECT, 0600
+            );
+
+            if (fileno == -1)
+            {
+                std::perror("creating cachedfile");
+                return;
+            }
+        }
+        bool is_open() override { return fileno != -1; }
+
+        virtual ~DirectIOWriter() { close(); }
+
+        void close() override
+        {
+            if (is_open())
+            {
+                close_file();
+                buffered_elements_ = 0;
+                fileno = -1;
+                path.clear();
+            }
+        }
+
+        void close_file() override {
+            ::close(fileno);
+            
+            file_ptr = open_file(path);
+            CachedFWriter::write_chunk();
+            fclose(file_ptr);   
+            file_ptr = nullptr;       
+        }
+
+        void write_chunk() override 
+        {
+            const size_t ret = ::write(fileno, start, buffered_elements_);
+            if (ret != buffered_elements_)
+                std::perror("writing cached file");
+            buffered_elements_ = 0;
+        }
+    };
+#else
+    typename DirectIOWriter = CachedFWriter;
+#endif
+
 
     
     // https://stackoverflow.com/questions/21126950/asynchronously-writing-to-a-file-in-c-unix

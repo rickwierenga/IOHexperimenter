@@ -20,7 +20,7 @@ size_t test_for_writer(const std::shared_ptr<ioh::common::file::Writer>& writer)
         logger.set_writer(writer);
         common::random::seed(1);
         const int runs = 3;
-        const int samples = 3;
+        const int samples = 30;
 
         for (auto pb : std::array<problem::BBOB *, 3>({&p0, &p1, &p2}))
         {
@@ -52,7 +52,8 @@ TEST_F(BaseTest, logger_flatfile) {
     auto n5 = test_for_writer(std::make_shared<ioh::common::file::AsyncWriter>());
     auto n6 = test_for_writer(std::make_shared<ioh::common::file::AsyncWriter>(4096));
     auto n7 = test_for_writer(std::make_shared<ioh::common::file::AsyncWriter>(128, true));
+    auto n8 = test_for_writer(std::make_shared<ioh::common::file::DirectIOWriter>(4096));
      
-    EXPECT_TRUE(n1 == n2 && n2 == n3 && n3 == n4 && n4 == n5 && n5 == n6 && n6 == n7)
-        << n1 << " " << n2 << " " << n3 << " " << n4 << " " << n5 << " " << n6 << " " << n7;
+    EXPECT_TRUE(n1 == n2 && n2 == n3 && n3 == n4 && n4 == n5 && n5 == n6 && n6 == n7 && n7 == n8)
+        << n1 << " " << n2 << " " << n3 << " " << n4 << " " << n5 << " " << n6 << " " << n7 << " " << n8;
 }
