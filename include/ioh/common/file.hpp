@@ -9,6 +9,14 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#include <condition_variable>
+#include <fstream>
+#include <mutex>
+#include <queue>
+#include <streambuf>
+#include <thread>
+
+
 #ifdef FSEXPERIMENTAL
 #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
 #undef JSON_HAS_FILESYSTEM
@@ -422,7 +430,7 @@ namespace ioh::common::file
     {
         std::ofstream out_;
         fs::path path_;
-        OFStream() : out_{} {}
+        OFStream() : out_{}, path_{} {}
 
         virtual ~OFStream() { close(); }
 
@@ -469,7 +477,7 @@ namespace ioh::common::file
             }
             if (buffer_size != 0)
             {
-                std::cout << "BUFSIZ is " << BUFSIZ << ", setting to " << buffer_size << '\n';
+                // std::cout << "BUFSIZ is " << BUFSIZ << ", setting to " << buffer_size << '\n';
                 if (std::setvbuf(file_ptr, nullptr, buffer_mode, buffer_size) != 0)
                     std::perror("setvbuf failed");
             }
@@ -573,4 +581,116 @@ namespace ioh::common::file
             }
         }
     };
+
+    
+    // https://stackoverflow.com/questions/21126950/asynchronously-writing-to-a-file-in-c-unix
+    struct async_buf : std::streambuf
+    {
+        std::ofstream out;
+        std::mutex mutex;
+        std::condition_variable condition;
+        std::queue<std::vector<char>> queue;
+        std::vector<char> buffer;
+        bool done;
+        std::thread thread;
+
+        void worker()
+        {
+            bool local_done(false);
+            std::vector<char> buf;
+            while (!local_done)
+            {
+                {
+                    std::unique_lock<std::mutex> guard(this->mutex);
+                    this->condition.wait(guard, [this]() { return !this->queue.empty() || this->done; });
+                    if (!this->queue.empty())
+                    {
+                        buf.swap(queue.front());
+                        queue.pop();
+                    }
+                    local_done = this->queue.empty() && this->done;
+                }
+                if (!buf.empty())
+                {
+                    out.write(buf.data(), std::streamsize(buf.size()));
+                    buf.clear();
+                }
+            }
+            out.flush();
+        }
+
+    public:
+        async_buf(std::string const &name, const size_t buffer_size) :
+            out(name), buffer(buffer_size), done(false), 
+            thread(&async_buf::worker, this)
+        {
+            this->setp(this->buffer.data(), this->buffer.data() + this->buffer.size() - 1);
+        }
+        ~async_buf()
+        {
+            std::unique_lock<std::mutex>(this->mutex), (this->done = true);
+            this->condition.notify_one();
+            this->thread.join();
+        }
+        int overflow(int c)
+        {
+            if (c != std::char_traits<char>::eof())
+            {
+                *this->pptr() = std::char_traits<char>::to_char_type(c);
+                this->pbump(1);
+            }
+            return this->sync() != -1 ? std::char_traits<char>::not_eof(c) : std::char_traits<char>::eof();
+        }
+        int sync()
+        {
+            if (this->pbase() != this->pptr())
+            {
+                this->buffer.resize(std::size_t(this->pptr() - this->pbase()));
+                {
+                    std::unique_lock<std::mutex> guard(this->mutex);
+                    this->queue.push(std::move(this->buffer));
+                }
+                this->condition.notify_one();
+                this->buffer = std::vector<char>(128);
+                this->setp(this->buffer.data(), this->buffer.data() + this->buffer.size() - 1);
+            }
+            return 0;
+        }
+    };
+
+    struct AsyncWriter : Writer
+    {
+        async_buf* buffer_;    
+        std::ostream* out_;
+        fs::path path_;
+        size_t buffer_size_;
+
+        AsyncWriter(const size_t buffer_size = 128) : buffer_(nullptr), out_(nullptr), path_{}, buffer_size_(buffer_size) {}
+
+        virtual ~AsyncWriter() { close(); }
+
+        void open(const fs::path &new_path) override
+        {
+            close();
+            buffer_ = new async_buf(new_path.generic_string(), buffer_size_);
+            out_ = new std::ostream(buffer_);
+            path_ = new_path;
+        };
+        void close() override
+        {
+            if (is_open())
+            {
+                out_->flush();
+                delete out_;
+                out_ = nullptr;
+                delete buffer_;
+                buffer_ = nullptr;
+            }
+        };
+        bool is_open() override { return out_ != nullptr; };
+        void write(const std::string &s) override { (*out_) << s; };
+    };
+
+
+
 } // namespace ioh::common::file

@@ -183,7 +183,9 @@ void define_writers(py::module &mod) {
     );
     py::class_<CachedFWriter, FWriter, std::shared_ptr<CachedFWriter>>(m, "CachedFWriter")
         .def(py::init<>())
-        ;  
+        ; 
+
+    py::class_<AsyncWriter, Writer, std::shared_ptr<AsyncWriter>>(m, "AsyncWriter").def(py::init<size_t>(), py::arg("buffer_size") = 128);  
 
 }
 

@@ -49,6 +49,9 @@ TEST_F(BaseTest, logger_flatfile) {
     auto n2 = test_for_writer(std::make_shared<ioh::common::file::FWriter>());
     auto n3 = test_for_writer(std::make_shared<ioh::common::file::CachedFWriter>());
     auto n4 = test_for_writer(std::make_shared<ioh::common::file::FWriter>(4096));
-
-    EXPECT_TRUE(n1 == n2 && n2 == n3 && n3 == n4) << n1 << " " << n2 << " " << n3 << " " << n4;
+    auto n5 = test_for_writer(std::make_shared<ioh::common::file::AsyncWriter>());
+    auto n6 = test_for_writer(std::make_shared<ioh::common::file::AsyncWriter>(4096));
+     
+    EXPECT_TRUE(n1 == n2 && n2 == n3 && n3 == n4 && n4 == n5 && n5 == n6)
+        << n1 << " " << n2 << " " << n3 << " " << n4 << " " << n5 << " " << n6;
 }
