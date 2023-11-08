@@ -528,15 +528,16 @@ namespace ioh::common::file
     };
 
 
-    constexpr const size_t KB = 1024;
-    constexpr const size_t CACHE_SIZE = 16 * KB;
-
     struct CachedFWriter : FWriter
     {
-        std::array<char, CACHE_SIZE> buffer;
-        size_t buffered_elements;
+        std::vector<char> buffer_;
+        size_t buffered_elements_;
+        size_t buffer_size_;
 
-        CachedFWriter() : FWriter{}, buffer{}, buffered_elements{0} {}
+        CachedFWriter(const size_t buffer_size = 4096) : 
+            FWriter{}, buffer_(buffer_size), buffered_elements_{0}, buffer_size_{buffer_size}
+        {
+        }
 
         void close() override
         {
@@ -544,13 +545,21 @@ namespace ioh::common::file
             {
                 write_chunk();
                 close_file();
-                buffered_elements = 0;
+                buffered_elements_ = 0;
                 path.clear();
             }
         }
         void open(const fs::path &new_path) override
         {
-            FWriter::open(new_path);
+            close();
+            path = new_path;
+            file_ptr = open_file(path);
+
+            if (file_ptr == NULL)
+            {
+                std::perror("creating cachedfile");
+                return;
+            }
             std::setvbuf(file_ptr, nullptr, _IONBF, 0);
         }
 
@@ -558,10 +567,10 @@ namespace ioh::common::file
 
         void write_chunk()
         {
-            const auto ret = fwrite(buffer.data(), sizeof(char), buffered_elements, file_ptr);
-            if (ret != buffered_elements)
+            const auto ret = fwrite(buffer_.data(), sizeof(char), buffered_elements_, file_ptr);
+            if (ret != buffered_elements_)
                 std::perror("writing cached file");
-            buffered_elements = 0;
+            buffered_elements_ = 0;
         }
 
         void write(const char *data, const size_t data_size) override
@@ -569,14 +578,14 @@ namespace ioh::common::file
             size_t bytes_written = 0;
             while (bytes_written < data_size)
             {
-                const size_t space = (CACHE_SIZE)-buffered_elements;
+                const size_t space = buffer_size_-buffered_elements_;
                 const size_t required = data_size - bytes_written;
                 const size_t to_write = std::min(space, required);
 
-                std::copy(data + bytes_written, data + bytes_written + to_write, buffer.data() + buffered_elements);
+                std::copy(data + bytes_written, data + bytes_written + to_write, buffer_.data() + buffered_elements_);
                 bytes_written += to_write;
-                buffered_elements += to_write;
-                if (buffered_elements == CACHE_SIZE)
+                buffered_elements_ += to_write;
+                if (buffered_elements_ == buffer_size_)
                     write_chunk();
             }
         }

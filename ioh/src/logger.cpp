@@ -182,11 +182,11 @@ void define_writers(py::module &mod) {
         py::arg("buffer_mode") = _IOFBF
     );
     py::class_<CachedFWriter, FWriter, std::shared_ptr<CachedFWriter>>(m, "CachedFWriter")
-        .def(py::init<>())
+        .def(py::init<size_t>(), py::arg("buffer_size") = 4096)
         ; 
 
     py::class_<AsyncWriter, Writer, std::shared_ptr<AsyncWriter>>(m, "AsyncWriter")
-        .def(py::init<size_t>(), 
+        .def(py::init<size_t, bool>(), 
             py::arg("buffer_size") = 128,
             py::arg("disable_local_buffering") = false
        );  
