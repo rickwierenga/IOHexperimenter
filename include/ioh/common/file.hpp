@@ -408,25 +408,44 @@ namespace ioh::common::file
 #endif
     }
 
-    constexpr const size_t PAGE_SIZE = 4096;
+    inline FILE *open_file(const fs::path &path)
+    {
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+        return fopen(path.generic_string().c_str(), "ab");
+#pragma warning(pop)
+#else
+        return fopen(path.generic_string().c_str(), "ab");
+#endif
+    }
+
+    struct Writer {
+        void open(const fs::path &new_path) = 0;
+        void close() = 0;
+        bool is_open() = 0;
+        void write(const std::string&) = 0;
+    };
+
+
+
+    constexpr const size_t KB = 1024;
+    constexpr const size_t CACHE_SIZE = 4 * KB;
 
     struct CachedFile
     {
         fs::path path;
         FILE *file_ptr;
-        alignas(PAGE_SIZE) std::array<char, PAGE_SIZE> buffer;
+        std::array<char, CACHE_SIZE> buffer;
         size_t buffered_elements;
-
         CachedFile() : path{}, file_ptr{nullptr}, buffer{}, buffered_elements{0} {}
 
         void open(const fs::path &new_path)
         {
             close();
             path = new_path;
-#pragma warning(push)
-#pragma warning(disable : 4996)
-            file_ptr = fopen(path.generic_string().c_str(), "ab");
-#pragma warning(pop)
+            file_ptr = open_file(path);
+
             if (file_ptr == NULL)
             {
                 std::cerr << "creating cachedfile: " << get_error() << std::endl;
@@ -438,11 +457,15 @@ namespace ioh::common::file
             if (is_open())
             {
                 write_chunk();
-                fclose(file_ptr);
-                file_ptr = nullptr;
+                close_file();
                 buffered_elements = 0;
                 path.clear();
             }
+        }
+
+        void close_file() {
+            fclose(file_ptr);
+            file_ptr = nullptr;
         }
 
         bool is_open() const { return file_ptr != nullptr; }
@@ -461,19 +484,17 @@ namespace ioh::common::file
 
         void write(const char *data, const size_t data_size)
         {
-
-
             size_t bytes_written = 0;
             while (bytes_written < data_size)
             {
-                const size_t space = (PAGE_SIZE)-buffered_elements;
+                const size_t space = (CACHE_SIZE)-buffered_elements;
                 const size_t required = data_size - bytes_written;
                 const size_t to_write = std::min(space, required);
 
-                std::copy(data + bytes_written, data + bytes_written + to_write, buffer.begin() + buffered_elements);
+                std::copy(data + bytes_written, data + bytes_written + to_write, buffer.data() + buffered_elements);
                 bytes_written += to_write;
                 buffered_elements += to_write;
-                if (buffered_elements == PAGE_SIZE)
+                if (buffered_elements == CACHE_SIZE)
                     write_chunk();
             }
         }
