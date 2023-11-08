@@ -163,8 +163,10 @@ public:
     }
 };
 
-void define_writers(py::module &m) { 
+void define_writers(py::module &mod) { 
     using namespace ioh::common::file;
+
+    py::module m = mod.def_submodule("writer");
 
     py::class_<Writer, std::shared_ptr<Writer>>(m, "Writer")
         .def("open", py::arg("path"), &Writer::open)
@@ -226,7 +228,7 @@ void define_analyzer(py::module &m)
         .def("add_run_attributes",
              py::overload_cast<const py::object &, const std::vector<std::string> &>(
                  &PyAnalyzer::add_run_attributes_python))
-
+        .def("set_writer", &PyAnalyzer::set_writer, py::arg("writer"))
         .def("set_run_attributes", &PyAnalyzer::set_run_attributes_python) // takes a map<str, double>
         .def("set_run_attribute", &PyAnalyzer::set_run_attribute_python) // takes str, double>
         .def_property_readonly("output_directory",
@@ -235,6 +237,7 @@ void define_analyzer(py::module &m)
         .def("watch", py::overload_cast<Property &>(&PyAnalyzer::watch))
         .def("watch", py::overload_cast<const py::object &, const std::string &>(&PyAnalyzer::watch))
         .def("watch", py::overload_cast<const py::object &, const std::vector<std::string> &>(&PyAnalyzer::watch))
+
         .def("__repr__",
              [](const PyAnalyzer &f) { return fmt::format("<Analyzer {}>", f.output_directory().generic_string()); });
 }
@@ -463,6 +466,7 @@ void define_flatfile(py::module &m)
         .def_property_readonly(
             "output_directory",
             [](PyWatcher<FlatFile> &f) { return fs::absolute(f.output_directory()).generic_string(); })
+        .def("set_writer", &PyWatcher<FlatFile>::set_writer, py::arg("writer"))
         .def("watch", py::overload_cast<Property &>(&PyWatcher<FlatFile>::watch))
         .def("watch", py::overload_cast<const py::object &, const std::string &>(&PyWatcher<FlatFile>::watch))
         .def("watch",
@@ -603,7 +607,7 @@ void define_logger(py::module &m)
 {
     py::class_<fs::path>(m, "Path").def(py::init<std::string>());
     py::implicitly_convertible<std::string, fs::path>();
-
+    define_writers(m);
     define_triggers(m);
     define_properties(m);
     define_bases(m);
