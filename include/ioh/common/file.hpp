@@ -587,7 +587,7 @@ namespace ioh::common::file
         }
     };
 
-#ifndef _MSC_VER 
+#if !(defined(_MSC_VER) || defined(__APPLE__))
     struct DirectIOWriter: CachedFWriter {
         int fileno;
 
