@@ -7,8 +7,11 @@
 
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <sys/stat.h>
+
+#ifndef _MSC_VER
+#include <unistd.h>
+#endif
 
 #include <condition_variable>
 #include <fstream>
@@ -644,7 +647,7 @@ namespace ioh::common::file
         }
     };
 #else
-    typename DirectIOWriter = CachedFWriter;
+    using DirectIOWriter = CachedFWriter;
 #endif
 
 
