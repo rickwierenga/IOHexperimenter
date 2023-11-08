@@ -169,19 +169,21 @@ void define_writers(py::module &mod) {
     py::module m = mod.def_submodule("writer");
 
     py::class_<Writer, std::shared_ptr<Writer>>(m, "Writer")
-        .def("open", py::arg("path"), &Writer::open)
+        .def("open", &Writer::open,  py::arg("path"))
         .def("close", &Writer::close)
         .def("is_open", &Writer::is_open)
         .def("write", &Writer::write, py::arg("data"))
     ;
 
     py::class_<OFStream, Writer, std::shared_ptr<OFStream>>(m, "OFStream").def(py::init<>());
-    py::class_<FWriter, Writer, std::shared_ptr<OFStream>>(m, "FWriter").def(
+    py::class_<FWriter, Writer, std::shared_ptr<FWriter>>(m, "FWriter").def(
         py::init<size_t, int>(), 
         py::arg("buffer_size") = 0, 
-        py:arg("buffer_mode") = _IOFBF
+        py::arg("buffer_mode") = _IOFBF
     );
-    py::class_<CachedFWriter, FWriter, std::shared_ptr<CachedFWriter>>(m, "CachedFWriter").def(py::init<>());  
+    py::class_<CachedFWriter, FWriter, std::shared_ptr<CachedFWriter>>(m, "CachedFWriter")
+        .def(py::init<>())
+        ;  
 
 }
 
@@ -607,6 +609,7 @@ void define_logger(py::module &m)
 {
     py::class_<fs::path>(m, "Path").def(py::init<std::string>());
     py::implicitly_convertible<std::string, fs::path>();
+    
     define_writers(m);
     define_triggers(m);
     define_properties(m);
