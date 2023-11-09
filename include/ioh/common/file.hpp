@@ -429,6 +429,25 @@ namespace ioh::common::file
         virtual void write(const std::string &) = 0;
     };
 
+    struct NoWriter: Writer{
+        bool is_open_;
+        size_t chars_written;
+        NoWriter(): is_open_(false), chars_written(0) {}
+
+        void open(const fs::path &new_path) override {
+            is_open_ = true;
+        }
+        void close() override {
+            is_open_ = false;
+        }
+        bool is_open() override {
+            return is_open_;
+        }
+        void write(const std::string &s) override {
+            chars_written += s.size();
+        }
+    };
+
 
     struct OFStream : Writer
     {

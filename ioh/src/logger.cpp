@@ -174,7 +174,7 @@ void define_writers(py::module &mod) {
         .def("is_open", &Writer::is_open)
         .def("write", &Writer::write, py::arg("data"))
     ;
-
+    py::class_<NoWriter, Writer, std::shared_ptr<NoWriter>>(m, "NoWriter").def(py::init<>());
     py::class_<OFStream, Writer, std::shared_ptr<OFStream>>(m, "OFStream").def(py::init<>());
     py::class_<FWriter, Writer, std::shared_ptr<FWriter>>(m, "FWriter").def(
         py::init<size_t, int>(), 
@@ -188,7 +188,7 @@ void define_writers(py::module &mod) {
     py::class_<DirectIOWriter, CachedFWriter, std::shared_ptr<DirectIOWriter>>(m, "DirectIOWriter")
         .def(py::init<size_t>(), py::arg("buffer_size") = 4096)
         ; 
-        
+
     py::class_<AsyncWriter, Writer, std::shared_ptr<AsyncWriter>>(m, "AsyncWriter")
         .def(py::init<size_t, bool>(), 
             py::arg("buffer_size") = 128,
