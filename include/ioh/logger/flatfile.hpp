@@ -167,23 +167,26 @@ namespace ioh::logger
                 out_->write(eol_);
                 requires_header_ = false;
             }
-
+            
             IOH_DBG(xdebug, "print problem meta data")
-            out_->write(current_meta_data_);
+            std::string to_write = current_meta_data_;
+            auto inserter = std::back_inserter(to_write);
             
             IOH_DBG(xdebug, "print watched properties")
             
             for (auto p = properties_vector_.begin(); p != properties_vector_.end();){
-                 auto str = p->get().call_to_string(log_info, nan_);
-                 if (++p != properties_vector_.end())
-                     str += sep_;
-                 out_->write(str);
+                p->get().call_to_string(to_write, log_info, nan_);
+                if (++p != properties_vector_.end())
+                    fmt::format_to(inserter, "{}", sep_);
             }
 
             if (store_positions_)
-                out_->write(sep_ + format("{:f}", fmt::join(log_info.x, sep_)));
-
-            out_->write(eol_);
+            {
+                fmt::format_to(inserter, "{}", sep_);
+                fmt::format_to(inserter, "{:f}", fmt::join(log_info.x, sep_));
+            }
+            fmt::format_to(inserter, "{}", eol_);
+            out_->write(to_write);
         }
 
         //! Accessor for output directory

@@ -12,7 +12,7 @@ namespace ioh
 
         //! Default format for storing doubles
         inline std::string DEFAULT_DOUBLE_FORMAT = "{:.10f}";
-        
+
         /** @defgroup Properties Properties
          * Accessors to values that are to be logged.
          *
@@ -76,7 +76,8 @@ namespace ioh
 
         public:
             //! Constructor.
-            Property(const std::string &name, const std::string &format = DEFAULT_DOUBLE_FORMAT) : name_(name), format_(format)
+            Property(const std::string &name, const std::string &format = DEFAULT_DOUBLE_FORMAT) :
+                name_(name), format_(format)
             {
                 assert(!name_.empty());
             }
@@ -110,16 +111,18 @@ namespace ioh
              * \param nan The value to log when there is no data.
              * \return a string representation of the properties' data
              */
-            [[nodiscard]] virtual std::string call_to_string(const logger::Info &log_info,
-                                                             const std::string &nan = "") const
+            [[nodiscard]] virtual void call_to_string(std::string &output, 
+                                                      const logger::Info &log_info,
+                                                      const std::string &nan = ""
+
+            ) const
             {
                 auto opt = (*this)(log_info);
                 if (opt)
                 {
-                    return fmt::format(format(), opt.value());
+                    fmt::format_to(std::back_inserter(output), format(), opt.value());
                 }
-                
-                return nan;
+                fmt::format_to(std::back_inserter(output), "{}", nan);
             }
         };
 
@@ -140,7 +143,7 @@ namespace ioh
         struct Evaluations : public logger::Property
         {
             //! Constructor.
-            Evaluations(const std::string& name = "evaluations", const std::string &format = "{:.0f}") :
+            Evaluations(const std::string &name = "evaluations", const std::string &format = "{:.0f}") :
                 logger::Property(name, format)
             {
             }
@@ -155,7 +158,7 @@ namespace ioh
          *
          * @ingroup Properties
          */
-        inline Evaluations evaluations; 
+        inline Evaluations evaluations;
 
         /** A property that access the cyrrent objective value, without transformation.
          *
@@ -171,9 +174,10 @@ namespace ioh
             //! Main call interface.
             std::optional<double> operator()(const logger::Info &log_info) const override
             {
-                if(abs(log_info.raw_y) == std::numeric_limits<double>::infinity()){
+                if (abs(log_info.raw_y) == std::numeric_limits<double>::infinity())
+                {
                     return {};
-                }                
+                }
                 return std::make_optional(log_info.raw_y);
             }
         };
@@ -182,7 +186,7 @@ namespace ioh
          *
          * @ingroup Properties
          */
-        inline RawY raw_y; 
+        inline RawY raw_y;
 
         /** A property that access the best value so far, without transformation.
          *
@@ -205,7 +209,7 @@ namespace ioh
          *
          * @ingroup Properties
          */
-        inline RawYBest raw_y_best;         
+        inline RawYBest raw_y_best;
 
         /** A property that access the current value so far, with transformation.
          *
@@ -215,7 +219,8 @@ namespace ioh
         {
             //! Constructor.
             //! Main call interface.
-            TransformedY(const std::string name = "transformed_y", const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
+            TransformedY(const std::string name = "transformed_y",
+                         const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
                 logger::Property(name, format)
             {
             }
@@ -228,7 +233,7 @@ namespace ioh
          *
          * @ingroup Properties
          */
-        inline TransformedY transformed_y; 
+        inline TransformedY transformed_y;
 
         /** A property that access the best value found so far, with transformation.
          *
@@ -237,7 +242,8 @@ namespace ioh
         struct TransformedYBest : public logger::Property
         {
             //! Constructor.
-            TransformedYBest(const std::string name = "transformed_y_best", const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
+            TransformedYBest(const std::string name = "transformed_y_best",
+                             const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
                 logger::Property(name, format)
             {
             }
@@ -251,7 +257,7 @@ namespace ioh
          *
          * @ingroup Properties
          */
-        inline TransformedYBest transformed_y_best; 
+        inline TransformedYBest transformed_y_best;
 
         /** A property that access the current value so far, with transformation and constraints applied
          *
@@ -274,10 +280,10 @@ namespace ioh
          *
          * @ingroup Properties
          */
-        inline CurrentY current_y; 
+        inline CurrentY current_y;
 
 
-         /** A property that access the current best value so far, with transformation and constraints applied
+        /** A property that access the current best value so far, with transformation and constraints applied
          *
          * @ingroup Logging
          */
@@ -310,10 +316,8 @@ namespace ioh
         {
             //! Constructor.
             //! Main call interface.
-            Violation(const std::string name = "violation",
-                      const std::string &format = logger::DEFAULT_DOUBLE_FORMAT,
-                      const size_t ci = 0
-                ) :
+            Violation(const std::string name = "violation", const std::string &format = logger::DEFAULT_DOUBLE_FORMAT,
+                      const size_t ci = 0) :
                 logger::Property(name, format),
                 ci(ci)
             {
@@ -323,9 +327,9 @@ namespace ioh
                 return std::make_optional(log_info.violations[ci]);
             }
 
-            private:
-                //! Index of the constraint to be logged
-                size_t ci;
+        private:
+            //! Index of the constraint to be logged
+            size_t ci;
         };
 
         /** Objective function value for this call, without transformation.
@@ -343,10 +347,8 @@ namespace ioh
         {
             //! Constructor.
             //! Main call interface.
-            Penalty(const std::string name = "penalty", 
-                    const std::string &format = logger::DEFAULT_DOUBLE_FORMAT,
-                    const size_t ci = 0
-                ) :
+            Penalty(const std::string name = "penalty", const std::string &format = logger::DEFAULT_DOUBLE_FORMAT,
+                    const size_t ci = 0) :
                 logger::Property(name, format),
                 ci(ci)
             {
@@ -387,8 +389,10 @@ namespace ioh
              * @param variable a reference to the logged variable.
              * @param format a fmt::format specification
              */
-            Reference(const std::string name, const T &variable, const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
-                logger::Property(name, format), _variable(variable)
+            Reference(const std::string name, const T &variable,
+                      const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
+                logger::Property(name, format),
+                _variable(variable)
             {
             }
 
@@ -407,7 +411,8 @@ namespace ioh
          * @ingroup Properties
          */
         template <class T>
-        Reference<T> &reference(const std::string name, const T &variable, const std::string &format = logger::DEFAULT_DOUBLE_FORMAT)
+        Reference<T> &reference(const std::string name, const T &variable,
+                                const std::string &format = logger::DEFAULT_DOUBLE_FORMAT)
         {
             auto p = new Reference<T>(name, variable, format);
             return *p;
@@ -433,8 +438,10 @@ namespace ioh
              * @param variable a pointer to the logged variable.
              * @param format a fmt::format specification
              */
-            Pointer(const std::string name, const T *const variable, const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
-                logger::Property(name, format), _variable(variable)
+            Pointer(const std::string name, const T *const variable,
+                    const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
+                logger::Property(name, format),
+                _variable(variable)
             {
                 assert(variable != nullptr);
             }
@@ -449,12 +456,13 @@ namespace ioh
          *
          * @param name the name of the property.
          * @param variable a pointer to the logged variable.
-         * @param format a string to format the variable when logging. 
+         * @param format a string to format the variable when logging.
          *
          * @ingroup Properties
          */
         template <class T>
-        Pointer<T> &address(const std::string name, const T *const variable, const std::string &format = logger::DEFAULT_DOUBLE_FORMAT)
+        Pointer<T> &address(const std::string name, const T *const variable,
+                            const std::string &format = logger::DEFAULT_DOUBLE_FORMAT)
         {
             auto p = new Pointer<T>(name, variable, format);
             return *p;
@@ -476,18 +484,18 @@ namespace ioh
         {
         public:
             //! Typedef for the ptr
-            using PtrType = T*;
+            using PtrType = T *;
             //! Typedef for the const ptr
             using ConstPtrType = PtrType const;
             //! Typedef for the const ptr ref
             using RefType = ConstPtrType &;
             //! Typedef for the const const ptr ref
-            using ConstRefType = RefType; 
+            using ConstRefType = RefType;
 
             // using Type = const T *const &;
             // We failed to make the above direct declaration work under g++-8 and clang++-9.
             // It would silently generate a code that fails to have the correct behaviour.
-            
+
         protected:
             //! The managed reference to a pointer.
             ConstRefType _ref_ptr_var;
@@ -495,7 +503,10 @@ namespace ioh
 #ifndef NDEBUG
         public:
             //! Accessor for the internal ptr
-            RefType ref_ptr_var() const {return const_cast<RefType>(_ref_ptr_var);} // g++-8 issues a warning for the const having no effect.           
+            RefType ref_ptr_var() const
+            {
+                return const_cast<RefType>(_ref_ptr_var);
+            } // g++-8 issues a warning for the const having no effect.
 #endif
         public:
             /** Constructor.
@@ -504,12 +515,15 @@ namespace ioh
              * @param ref_ptr_var a reference to a pointer to the logged variable.
              * @param format a fmt::format specification
              */
-            PointerReference(const std::string name, ConstRefType ref_ptr_var, const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
-                logger::Property(name, format), _ref_ptr_var(ref_ptr_var)
+            PointerReference(const std::string name, ConstRefType ref_ptr_var,
+                             const std::string &format = logger::DEFAULT_DOUBLE_FORMAT) :
+                logger::Property(name, format),
+                _ref_ptr_var(ref_ptr_var)
             {
                 if (_ref_ptr_var != nullptr)
                 {
-                    // IOH_DBG(debug, "PointerReference "  name << " @ " << ref_ptr_var << " == " << static_cast<double>(*ref_ptr_var));
+                    // IOH_DBG(debug, "PointerReference "  name << " @ " << ref_ptr_var << " == " <<
+                    // static_cast<double>(*ref_ptr_var));
                 }
                 // IOH_DBG(debug, "PointerReference " << name << " @ " << ref_ptr_var << " == nullptr");
             }
@@ -519,13 +533,13 @@ namespace ioh
             {
                 if (_ref_ptr_var != nullptr)
                 {
-                    // IOH_DBG(debug, "PointerReference " << name() << " @ " << _ref_ptr_var << " == " << static_cast<double>(*_ref_ptr_var));
+                    // IOH_DBG(debug, "PointerReference " << name() << " @ " << _ref_ptr_var << " == " <<
+                    // static_cast<double>(*_ref_ptr_var));
                     return std::make_optional(static_cast<double>(*_ref_ptr_var));
                 }
                 // IOH_DBG(debug, "PointerReference " << name() << " @ " << _ref_ptr_var << " == nullopt");
                 return std::nullopt;
             }
-
         };
         /** The value of an extern variable, which may not exists.
          *

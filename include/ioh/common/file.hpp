@@ -721,7 +721,11 @@ namespace ioh::common::file
         }
         ~async_buf()
         {
+            #ifdef _MSC_VER
+            #pragma warning(push)
+            #pragma warning(disable : 4834)
             std::unique_lock<std::mutex>(this->mutex), (this->done = true);
+            #endif 
             this->condition.notify_one();
             this->thread.join();
         }

@@ -14,9 +14,9 @@ struct AbstractProperty : logger::Property
 {
     AbstractProperty(const std::string &name) : logger::Property(name) {}
 
-    std::string call_to_string(const logger::Info &log_info, const std::string &nan = "") const override
+    void call_to_string(std::string& output, const logger::Info &log_info, const std::string &nan = "") const override
     {
-        PYBIND11_OVERRIDE(std::string, logger::Property, call_to_string, log_info, nan);
+        PYBIND11_OVERRIDE(void, logger::Property, call_to_string, output, log_info, nan);
     }
 
     std::optional<double> operator()(const logger::Info &info) const override
