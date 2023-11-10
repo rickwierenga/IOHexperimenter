@@ -1,8 +1,6 @@
-channels:
-  - defaults
 dependencies:
-  - python=3.9.18
-  - pip=23.3
+  - python==3.9.18
+  - pip==23.3
   - pip:
     - .
     - breathe==4.35.0
