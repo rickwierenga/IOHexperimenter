@@ -35,6 +35,15 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     endif() 
 endif()  
 
+# Ensure the static/ directory exists
+set(STATIC_DIR "${PROJECT_SOURCE_DIR}/static")
+
+# Check if the directory exists and print a message if it does
+if(EXISTS "${STATIC_DIR}")
+    message(STATUS "YEAH, STATIC EXISTS at ${STATIC_DIR}")
+else()
+    message(STATUS "STATIC directory DOES NOT EXIST :((( at ${STATIC_DIR}")
+endif()
  
  
 # Define project targets.
