@@ -471,8 +471,8 @@ module add gcc/11.2
 module add LLVM/clang-llvm-10.0
 
 git clone git@github.com:IOHprofiler/IOHexperimenter.git
-git checkout dynamic-bin-val
 cd IOHexperimenter
+git checkout dynamic-bin-val
 git submodule
 git submodule init
 git submodule update
@@ -519,6 +519,9 @@ In this, case just close the connection to the ssh server and open a new one:
 # Connection to mesu.dsi.upmc.fr closed.
 
 #  >> connected as rusind on mesu2
+
+# OR: Try this command:
+module add git/2.42.0
 ```
 
 ```sh
@@ -551,4 +554,34 @@ conda env create --prefix ./.conda_environment --file conda.yaml
 conda activate ./.conda_environment
 cd tests/python/
 ipython3 never.py
+```
+
+
+
+
+
+
+Run Nevergrad on the login node of MeSU.
+```sh
+ssh mesu
+
+module add cmake/3.22
+module add conda3-2023.02
+module add gcc/11.2
+module add git/2.42.0
+module add LLVM/clang-llvm-10.0
+
+cd /scratchbeta/rusind/
+rm -rf IOHexperimenter/
+git clone --branch nevergrad_runs --depth 1 git@github.com:IOHprofiler/IOHexperimenter.git
+cd IOHexperimenter
+git submodule init
+git submodule update
+
+conda activate base
+rm -rf ./.conda_environment
+conda env create --prefix ./.conda_environment --file conda.yaml
+conda activate ./.conda_environment
+
+./RUN_NEVERGRAD
 ```
