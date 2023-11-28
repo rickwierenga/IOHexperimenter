@@ -126,7 +126,18 @@ namespace ioh::common
         void include(const std::string &name, const int id, Creator creator)
         {
             const auto already_defined = name_map.find(name) != std::end(name_map);
-            assert(!already_defined && name.c_str());
+
+            // Enhanced assertion message
+            if (already_defined) {
+                std::string error_message = "Error: The name '" + name + "' has already been defined in the factory.";
+
+                // Output the error message to both std::cerr and std::cout
+                std::cerr << error_message << std::endl;
+                std::cout << error_message << std::endl;
+
+                assert(false);
+            }
+
             name_map[name] = std::move(creator);
             if (!already_defined)
                 id_map[check_or_get_next_available(id)] = name;
